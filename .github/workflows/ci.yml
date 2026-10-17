@@ -39,3 +39,16 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # A build proves the types line up; it does not prove Tailwind emitted the
+      # design system. These four are the load-bearing pieces of the skin.
+      - name: Check the stylesheet compiled
+        run: |
+          set -e
+          css=$(cat .next/static/css/*.css)
+          for token in --room .sticker .tx-word .dock; do
+            case "$css" in
+              *"$token"*) echo "ok $token" ;;
+              *) echo "missing from the compiled CSS: $token" >&2; exit 1 ;;
+            esac
+          done
