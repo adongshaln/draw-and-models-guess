@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadMe, saveMe, saveSeat, type Me } from "@/lib/client";
+import { PRESETS, presetByKey, presetMatches } from "@/lib/presets";
 
-const EMPTY: Me = { name: "", endpoint: "https://api.together.xyz/v1", model: "", apiKey: "" };
+const EMPTY: Me = { name: "", endpoint: "https://api.together.xyz/v1", model: "", apiKey: "", presetKey: "" };
 
 export default function Home() {
   const router = useRouter();
@@ -29,6 +30,21 @@ export default function Home() {
     });
   }
 
+  function pick(key: string) {
+    const preset = presetByKey(key);
+    if (!preset) {
+      set("presetKey", "");
+      return;
+    }
+    setMe((current) => ({ ...current, presetKey: preset.key, endpoint: preset.endpoint, model: preset.model }));
+  }
+
+  /** The preset's request fields, but only while the form still says what it said. */
+  function paramsFor(): Record<string, unknown> | undefined {
+    const preset = presetByKey(me.presetKey ?? "");
+    return preset && presetMatches(preset, me.endpoint, me.model) ? preset.params : undefined;
+  }
+
   function valid(): string | null {
     if (!me.name.trim()) return "Pick a name.";
     if (!me.endpoint.trim().startsWith("https://")) return "The endpoint has to start with https://";
@@ -43,14 +59,20 @@ export default function Home() {
     setBusy("create");
     setError(null);
     try {
+      const payload = {
+        name: me.name.trim(),
+        endpoint: me.endpoint.trim(),
+        model: me.model.trim(),
+        params: paramsFor(),
+      };
       const res = await fetch("/api/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: me.name.trim(), endpoint: me.endpoint.trim(), model: me.model.trim() }),
+        body: JSON.stringify(payload),
       });
       const data = (await res.json()) as { code?: string; playerId?: string; token?: string; error?: string };
       if (!res.ok || !data.code || !data.playerId || !data.token) throw new Error(data.error ?? "Could not open a room.");
-      saveMe({ ...me, name: me.name.trim(), endpoint: me.endpoint.trim(), model: me.model.trim() });
+      saveMe({ ...me, name: payload.name, endpoint: payload.endpoint, model: payload.model });
       saveSeat(data.code, { playerId: data.playerId, token: data.token });
       router.push(`/room/${data.code}`);
     } catch (e) {
@@ -67,14 +89,21 @@ export default function Home() {
     setBusy("join");
     setError(null);
     try {
+      const payload = {
+        action: "join",
+        name: me.name.trim(),
+        endpoint: me.endpoint.trim(),
+        model: me.model.trim(),
+        params: paramsFor(),
+      };
       const res = await fetch(`/api/room/${room}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "join", name: me.name.trim(), endpoint: me.endpoint.trim(), model: me.model.trim() }),
+        body: JSON.stringify(payload),
       });
       const data = (await res.json()) as { playerId?: string; token?: string; error?: string };
       if (!res.ok || !data.playerId || !data.token) throw new Error(data.error ?? "Could not join that room.");
-      saveMe({ ...me, name: me.name.trim(), endpoint: me.endpoint.trim(), model: me.model.trim() });
+      saveMe({ ...me, name: payload.name, endpoint: payload.endpoint, model: payload.model });
       saveSeat(room, { playerId: data.playerId, token: data.token });
       router.push(`/room/${room}`);
     } catch (e) {
@@ -82,6 +111,9 @@ export default function Home() {
       setBusy(null);
     }
   }
+
+  const preset = presetByKey(me.presetKey ?? "");
+  const usingPreset = Boolean(preset && presetMatches(preset, me.endpoint, me.model));
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-6 px-5 py-12">
@@ -95,14 +127,38 @@ export default function Home() {
 
       <section className="card p-5 sm:p-6">
         <h2 className="text-sm font-bold uppercase tracking-wider text-mute">Your seat</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
+        <label className="mt-4 block">
+          <span className="mb-1 block text-xs font-semibold text-mute">Model</span>
+          <select className="field" value={preset?.key ?? ""} onChange={(e) => pick(e.target.value)}>
+            <option value="">Custom — I will type the endpoint myself</option>
+            {PRESETS.map((p) => (
+              <option key={p.key} value={p.key}>
+                {p.label} · {p.lab}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="mt-1 text-[11px] leading-5 text-mute">
+          {usingPreset
+            ? "This preset also sends the request fields that switch reasoning off — without them a thinking model burns its budget and answers nothing."
+            : "Presets fill in the endpoint, the model id and the switch that stops it from thinking out loud. Edit either field and the switch is dropped."}
+        </p>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-xs font-semibold text-mute">Your name</span>
             <input className="field" value={me.name} maxLength={20} placeholder="ada" onChange={(e) => set("name", e.target.value)} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-mute">Model name</span>
-            <input className="field" value={me.model} maxLength={80} placeholder="moonshotai/Kimi-K3" onChange={(e) => set("model", e.target.value)} />
+            <span className="mb-1 block text-xs font-semibold text-mute">Model id</span>
+            <input
+              className="field font-mono text-[13px]"
+              value={me.model}
+              maxLength={80}
+              placeholder="moonshotai/Kimi-K3"
+              onChange={(e) => set("model", e.target.value)}
+            />
           </label>
           <label className="block sm:col-span-2">
             <span className="mb-1 block text-xs font-semibold text-mute">Base URL (OpenAI-compatible)</span>

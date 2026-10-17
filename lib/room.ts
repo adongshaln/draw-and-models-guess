@@ -25,6 +25,8 @@ export type Player = {
   /** Base URL of an OpenAI-compatible API, e.g. https://api.together.xyz/v1 */
   endpoint: string;
   model: string;
+  /** Extra request fields from the preset: the thinking switch, and a token budget. */
+  params?: Record<string, unknown>;
   score: number;
   joinedAt: number;
 };

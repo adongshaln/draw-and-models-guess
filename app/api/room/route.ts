@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { newCode, newId, newToken } from "@/lib/code";
+import { cleanParams } from "@/lib/chat";
 import { assertEndpointShape } from "@/lib/endpoint";
 import type { Room } from "@/lib/room";
 import { createRoom } from "@/lib/store";
 
 export const runtime = "nodejs";
 
-type Body = { name?: unknown; endpoint?: unknown; model?: unknown };
+type Body = { name?: unknown; endpoint?: unknown; model?: unknown; params?: unknown };
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
     name,
     endpoint,
     model,
+    params: cleanParams(body?.params),
     score: 0,
     joinedAt: Date.now(),
   };

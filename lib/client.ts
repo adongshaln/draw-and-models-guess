@@ -6,6 +6,8 @@ export type Me = {
   endpoint: string;
   /** The model id as the provider spells it. */
   model: string;
+  /** Which preset filled the two fields above, if any. */
+  presetKey?: string;
   /** Kept in this browser only, and passed to the server one call at a time. */
   apiKey: string;
 };

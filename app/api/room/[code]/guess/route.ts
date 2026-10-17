@@ -54,6 +54,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       model: me.model,
       image: room.image,
       wrong: mine.filter((g) => g.verdict !== "correct").map((g) => g.text),
+      params: me.params,
       signal: req.signal,
     });
     raw = out.text;

@@ -27,22 +27,44 @@ export function chatUrl(base: string): string {
 
 export type ChatResult = { text: string; latencyMs: number };
 
+/**
+ * A preset's request fields, and nothing more. Small, flat, JSON-safe: this is
+ * the difference between a thinking switch and a payload.
+ */
+export function cleanParams(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0 || entries.length > 12) return undefined;
+  let json: string;
+  try {
+    json = JSON.stringify(value);
+  } catch {
+    return undefined;
+  }
+  if (json.length > 600) return undefined;
+  return value as Record<string, unknown>;
+}
+
 export async function askModel(opts: {
   endpoint: string;
   apiKey: string;
   model: string;
   image: string;
   wrong: string[];
+  params?: Record<string, unknown>;
   signal?: AbortSignal;
 }): Promise<ChatResult> {
   const note = opts.wrong.length
     ? `Wrong so far: ${opts.wrong.slice(-10).join(", ")}. What is it now?`
     : "What is it?";
 
+  // The preset's fields come first so they can raise max_tokens or switch
+  // reasoning off, but they can never replace the model or the messages.
   const body = {
-    model: opts.model,
     max_tokens: 24,
     temperature: 0.3,
+    ...(opts.params ?? {}),
+    model: opts.model,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       {

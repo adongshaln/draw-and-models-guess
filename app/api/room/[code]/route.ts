@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { newId, newToken } from "@/lib/code";
+import { cleanParams } from "@/lib/chat";
 import { assertEndpointShape } from "@/lib/endpoint";
 import {
   MAX_PLAYERS,
@@ -133,7 +134,16 @@ async function join(code: string, body: Body | null) {
     return fail(e instanceof Error ? e.message : "Bad endpoint.");
   }
 
-  const player = { id: newId(), token: newToken(), name, endpoint, model, score: 0, joinedAt: Date.now() };
+  const player = {
+    id: newId(),
+    token: newToken(),
+    name,
+    endpoint,
+    model,
+    params: cleanParams(body?.params),
+    score: 0,
+    joinedAt: Date.now(),
+  };
   // A holder rather than a captured `let`: TypeScript's flow analysis cannot see
   // writes made inside the callback and would narrow the variable to null.
   const state: { error: string | null; status: number } = { error: null, status: 409 };
