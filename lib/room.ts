@@ -49,6 +49,9 @@ export type RoundRecord = {
   solvers: { playerId: string; attempt: number; points: number }[];
 };
 
+/** 这一轮谁没答出来、为什么。存在房间里，所有人看得见，也跟着房间一起销毁。 */
+export type RoomError = { playerId: string; at: number; message: string };
+
 export type Room = {
   code: string;
   /** Bumped on every write, so a client can tell whether it is looking at news. */
@@ -65,6 +68,7 @@ export type Room = {
   players: Player[];
   guesses: Guess[];
   history: RoundRecord[];
+  errors?: RoomError[];
 };
 
 /** Points for solving on the first, second or third look. */
@@ -121,6 +125,7 @@ export function startGame(room: Room, now: number, word = pickWord().word): Room
   next.deadline = now + DRAW_SECONDS * 1000;
   next.guesses = [];
   next.history = [];
+  next.errors = [];
   next.image = null;
   next.rev++;
   return next;
@@ -172,6 +177,14 @@ export function recordGuess(
   return next;
 }
 
+/** 记下这一次为什么没答出来，给同一间房的其他人也看得见。 */
+export function noteError(room: Room, playerId: string, message: string, now: number): Room {
+  const next = clone(room);
+  next.errors = [...(room.errors ?? []), { playerId, at: now, message: message.slice(0, 160) }].slice(-12);
+  next.rev++;
+  return next;
+}
+
 export function reveal(room: Room, now: number): Room {
   const next = clone(room);
   next.phase = "reveal";
@@ -211,6 +224,7 @@ export function nextRound(room: Room, now: number, word = pickWord(room.history.
   next.word = word;
   next.deadline = now + DRAW_SECONDS * 1000;
   next.guesses = [];
+  next.errors = [];
   next.image = null;
   next.rev++;
   return next;
@@ -260,6 +274,7 @@ export type PublicRoom = {
   players: PublicPlayer[];
   guesses: Guess[];
   history: RoundRecord[];
+  errors: RoomError[];
 };
 
 /**
@@ -284,5 +299,6 @@ export function publicRoom(room: Room, viewerId: string): PublicRoom {
     players: room.players.map((p) => ({ id: p.id, name: p.name, model: p.model, score: p.score, isDrawer: p.id === room.drawerId })),
     guesses: room.guesses,
     history: room.history,
+    errors: room.errors ?? [],
   };
 }

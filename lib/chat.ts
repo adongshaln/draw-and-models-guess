@@ -6,6 +6,12 @@
  * The key is passed in by the player's own browser for this one request. It is
  * never written to the room, never logged, and never put in an error message.
  */
+/**
+ * 自定义接口没有"关掉思考"的开关，预算给紧了一定出事：模型先把 token 花在
+ * 推理上，交回来的是空字符串，或者半截词（"电子钟"只剩"电子"）。预设表里的
+ * 模型各有调过的预算，走自定义的一律按这个宽裕值。
+ */
+const DEFAULT_MAX_TOKENS = 200;
 const MAX_BYTES = 1_000_000;
 const TIMEOUT_MS = 25_000;
 
@@ -62,7 +68,7 @@ export async function askModel(opts: {
   // The preset's fields come first so they can raise max_tokens or switch
   // reasoning off, but they can never replace the model or the messages.
   const body = {
-    max_tokens: 24,
+    max_tokens: DEFAULT_MAX_TOKENS,
     temperature: 0.3,
     ...(opts.params ?? {}),
     model: opts.model,
@@ -112,8 +118,18 @@ export async function askModel(opts: {
     throw new Error("模型返回的不是 JSON。");
   }
 
-  const content = (json as { choices?: { message?: { content?: unknown } }[] })?.choices?.[0]?.message?.content;
+  const choice = (json as { choices?: { message?: { content?: unknown }; finish_reason?: string }[] })?.choices?.[0];
+  const content = choice?.message?.content;
   const text = typeof content === "string" ? content : Array.isArray(content) ? content.map((c) => (typeof c === "string" ? c : "")).join(" ") : "";
-  if (!text.trim()) throw new Error("模型没有给出答案。");
+  // finish_reason 是 length 就说明它没说完：要么空，要么是"电子钟"只剩"电子"。
+  const cut = choice?.finish_reason === "length";
+  if (!text.trim()) {
+    throw new Error(
+      cut
+        ? "模型的 token 预算被思考吃光了，回答是空的。给它调大 max_tokens，或者换一个能关掉思考的模型。"
+        : "模型没有给出答案。",
+    );
+  }
+  if (cut) throw new Error("模型回答被截断了（token 预算不够），只拿到半截词。给它调大 max_tokens。");
   return { text, latencyMs: Date.now() - started };
 }

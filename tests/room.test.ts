@@ -8,6 +8,7 @@ import {
   finishDrawing,
   guessesBy,
   nextRound,
+  noteError,
   pointsFor,
   publicRoom,
   recordGuess,
@@ -168,6 +169,15 @@ describe("reveal", () => {
     const done = reveal(room, 3000);
     expect(done.players.find((p) => p.id === "p2")?.score).toBe(0);
     expect(done.players.find((p) => p.id === "p1")?.score).toBe(-1);
+  });
+
+  it("失败原因写进房间，换轮时清掉", () => {
+    let room = startGame(makeRoom(), 1000, "猫");
+    room = noteError(room, "p2", "模型回答被截断了（token 预算不够）", 2000);
+    expect(publicRoom(room, "p1").errors).toHaveLength(1);
+    expect(publicRoom(room, "p1").errors[0].playerId).toBe("p2");
+    const next = nextRound(reveal(room, 3000), 4000, "狗");
+    expect(next.errors).toEqual([]);
   });
 });
 

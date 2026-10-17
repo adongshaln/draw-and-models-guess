@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { askModel } from "@/lib/chat";
 import { assertSafeEndpoint } from "@/lib/endpoint";
 import { cleanGuess, judgeGuess } from "@/lib/judge";
-import { MAX_ATTEMPTS, guessesBy, playerByToken, pointsFor, recordGuess, solvedBy } from "@/lib/room";
+import { MAX_ATTEMPTS, guessesBy, noteError, playerByToken, pointsFor, recordGuess, solvedBy } from "@/lib/room";
 import { getRoom, withRoomLock } from "@/lib/store";
 import { newId } from "@/lib/code";
 
@@ -61,7 +61,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     latencyMs = out.latencyMs;
   } catch (e) {
     const message = e instanceof Error ? e.message : "模型调用失败。";
-    return NextResponse.json({ error: message, latencyMs: 0 }, { status: 502, headers: noStore });
+    // 把原因写进房间：同一间房的其他人也看得见，而不是只在自己屏幕上闪一下。
+    // 顺手把可能回显在错误里的长串（密钥、token）抹掉。
+    const safe = message.replace(/[A-Za-z0-9_-]{20,}/g, "***").slice(0, 160);
+    await withRoomLock(code, (r) => (r ? noteError(r, me.id, safe, Date.now()) : null)).catch(() => null);
+    return NextResponse.json({ error: safe, latencyMs: 0 }, { status: 502, headers: noStore });
   }
 
   const text = cleanGuess(raw) || raw.trim().slice(0, 40).toLowerCase();

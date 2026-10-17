@@ -505,6 +505,7 @@ export function RoomView({ code }: { code: string }) {
                 const theirs = room.guesses.filter((g) => g.playerId === p.id);
                 const solved = theirs.find((g) => g.verdict === "correct");
                 const mood: Mood = solved ? "happy" : p.id === room.you && thinking ? "thinking" : "idle";
+                const lastError = room.errors.filter((e) => e.playerId === p.id).slice(-1)[0];
                 return (
                   <li key={p.id} className={`sticker lane-card flex items-start gap-2.5 p-2.5 ${solved ? "ring-2 ring-ink/10" : ""}`}>
                     <Creature color={s.color} shape={s.shape} size={40} mood={mood} crown={Boolean(solved)} />
@@ -547,6 +548,7 @@ export function RoomView({ code }: { code: string }) {
                           ))
                         )}
                       </div>
+                      {lastError ? <p className="tx-small mt-1 leading-4 text-bad">{lastError.message}</p> : null}
                       {p.id === room.you && stalled ? (
                         <button
                           className="tx-small mt-1.5 rounded-lg bg-ink px-2 py-0.5 font-semibold text-white"
