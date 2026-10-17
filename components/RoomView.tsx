@@ -66,6 +66,7 @@ export function RoomView({ code }: { code: string }) {
   const lastInk = useRef<string | null>(null);
   const sounded = useRef(0);
   const dismissedFinal = useRef<string | null>(null);
+  const openedFinal = useRef<string | null>(null);
 
   meRef.current = me;
   seatRef.current = seat;
@@ -311,12 +312,17 @@ export function RoomView({ code }: { code: string }) {
   useEffect(() => {
     if (!room) return;
     if (room.phase === "over") {
-      if (dismissedFinal.current !== room.code) {
+      // 每次轮询都会跑这个 effect，所以"已经弹过"要单独记一笔，
+      // 否则彩屑音效会每秒重放一次。
+      if (openedFinal.current !== room.code && dismissedFinal.current !== room.code) {
+        openedFinal.current = room.code;
         setShowFinal(true);
         sound.sparkle(0.05);
       }
     } else {
       setShowFinal(false);
+      openedFinal.current = null;
+      dismissedFinal.current = null;
     }
   }, [room]);
 
