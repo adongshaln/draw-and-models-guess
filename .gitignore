@@ -8,3 +8,10 @@ out
 next-env.d.ts
 .vercel
 .DS_Store
+
+.vercel
+.env*
+
+# dropped in by the Upstash marketplace integration
+.agents/
+skills-lock.json
