@@ -112,7 +112,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   return fail("Unknown action.");
 }
 
-async function join(code: string, body: Body) {
+async function join(code: string, body: Body | null) {
   const token = typeof body?.token === "string" ? body.token : "";
   const name = typeof body?.name === "string" ? body.name.trim().slice(0, 20) : "";
   const endpoint = typeof body?.endpoint === "string" ? body.endpoint.trim().slice(0, 300) : "";

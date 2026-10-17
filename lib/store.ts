@@ -141,7 +141,10 @@ export async function createRoom(room: Room): Promise<boolean> {
  * current room (or null) and returns the room to store, or null to leave it be.
  * Never hold this across a model call: the lock is 10s and a call can take 25.
  */
-export async function withRoomLock(code: string, fn: (room: Room | null) => Promise<Room | null>): Promise<Room | null> {
+export async function withRoomLock(
+  code: string,
+  fn: (room: Room | null) => Room | null | Promise<Room | null>,
+): Promise<Room | null> {
   const lockKey = `${roomKey(code)}:lock`;
   let held = false;
   for (let i = 0; i < 40 && !held; i++) {
