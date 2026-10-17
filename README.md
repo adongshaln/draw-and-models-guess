@@ -1,6 +1,8 @@
-# Draw & Models Guess
+# Draw & Models Guess / 你画，模型猜
 
 A drawing game where **every player brings their own model**. One person draws, everybody else's model gets three looks at the finished picture, and the pencil passes on.
+
+界面是中文的：一个人画，桌上每个模型三次机会，然后换下一个人画。
 
 No shared inference account, no leaderboard of strangers: you type in a base URL, a model id and your own API key, and that key never leaves your browser except as one short-lived request.
 
@@ -86,9 +88,9 @@ That is the entire configuration. There is no site-wide model key, because every
 
 The idea of letting a row of open models race to name a doodle comes from [Nutlope/open-pictionary](https://github.com/Nutlope/open-pictionary), and so does most of what makes this one look like anything:
 
-- **The word deck** — [lib/words.ts](lib/words.ts) is their 166-word table, synonyms and all.
+- **The word deck** — [lib/words.ts](lib/words.ts) is their 166-word table, translated to Chinese, with the English synonyms kept: a model that answers `spider` scores the same as one that answers `蜘蛛`.
 - **The model table** — [lib/presets.ts](lib/presets.ts) is their racer table: the endpoint, the model id, and the one thinking switch that works per lab.
-- **The visual system** — [app/globals.css](app/globals.css) is their stylesheet: one typeface on three axes, sticker cards, the room colour, every keyframe.
+- **The visual system** — [app/globals.css](app/globals.css) is their stylesheet: one typeface on three axes, sticker cards, the room colour, every keyframe. Bricolage Grotesque has no Chinese glyphs, so it keeps the Latin and the digits and the hanzi fall through to PingFang / YaHei / Noto Sans SC; the display classes drop their negative tracking under `zh-CN` so the characters do not collide.
 - **The creatures** — [lib/creatures.ts](lib/creatures.ts) and [components/Creature.tsx](components/Creature.tsx) are their geometry and their shared gaze loop. The eighth body (`flower`) is the one they defined and never used.
 - **The confetti, the clock, the word reveal, the synthesised sound** — [Burst](components/Burst.tsx), [Clock](components/Clock.tsx), [Word](components/Word.tsx), [sound](components/sound.ts), all copied and re-pointed at seats instead of a fixed seven.
 
