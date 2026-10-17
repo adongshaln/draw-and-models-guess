@@ -1,115 +1,500 @@
 @import "tailwindcss";
 
-@theme {
-  --color-paper: #f4efe4;
-  --color-card: #fffdf7;
-  --color-ink: #171412;
-  --color-mute: #6f675c;
-  --color-line: #ded6c6;
-  --color-accent: #e2402a;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+/* ============================================================
+   Draw & Models Guess
+   The visual system is lifted whole from Nutlope/open-pictionary:
+   one typeface (Bricolage Grotesque, opsz + wdth + wght axes),
+   a room color that changes every round, white "sticker" cards,
+   and creatures who each own a color.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+  --room: #ffd84a;
+  --ink: #16130f;
+  --ink-2: rgb(22 19 15 / 0.66);
+  --ink-3: rgb(22 19 15 / 0.42);
+  --ink-4: rgb(22 19 15 / 0.14);
+  --line: rgb(22 19 15 / 0.08);
+  --card: #ffffff;
+  --card-2: #f6f3ee;
+  --close: #b45309;
+  --close-soft: #fff1d6;
+  --bad: #c2271b;
+  --bad-soft: #ffe4e0;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --lift: 0 1px 0 rgb(22 19 15 / 0.04), 0 1px 2px rgb(22 19 15 / 0.06), 0 8px 24px -12px rgb(22 19 15 / 0.22);
+  --lift-hi: 0 1px 0 rgb(22 19 15 / 0.04), 0 2px 4px rgb(22 19 15 / 0.06), 0 16px 36px -14px rgb(22 19 15 / 0.32);
+  --float: 0 2px 0 rgb(22 19 15 / 0.05), 0 30px 70px -28px rgb(22 19 15 / 0.45), 0 12px 24px -16px rgb(22 19 15 / 0.2);
+}
+
+@theme inline {
+  --color-room: var(--room);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-close: var(--close);
+  --color-close-soft: var(--close-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --ease-out: var(--ease-out);
+  --ease-spring: var(--ease-spring);
 }
 
 @layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line);
+  }
   html {
     -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+    overscroll-behavior: none;
   }
   body {
-    background-color: var(--color-paper);
-    color: var(--color-ink);
+    overflow-x: clip;
+    overscroll-behavior: none;
+    background-color: var(--room);
+    color: var(--ink);
     font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    font-feature-settings: "ss01";
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.7s var(--ease-out);
   }
   ::selection {
-    background: #ffe08a;
+    background: var(--ink);
+    color: var(--room);
   }
   :focus-visible {
-    outline: 2px solid var(--color-ink);
-    outline-offset: 2px;
+    outline: 2.5px solid var(--ink);
+    outline-offset: 3px;
+    border-radius: 10px;
+  }
+  button {
+    cursor: pointer;
   }
 }
 
+/* ------------------------------------------------------------
+   Type. One family, many voices via its axes.
+   ------------------------------------------------------------ */
 @layer components {
-  .card {
-    background-color: var(--color-card);
-    border: 1px solid var(--color-line);
-    border-radius: 1rem;
-    box-shadow: 0 1px 0 rgb(23 20 18 / 0.03), 0 12px 28px -20px rgb(23 20 18 / 0.35);
+  .tx-word {
+    font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.4rem);
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    font-variation-settings: "opsz" 96, "wdth" 82;
   }
-  .field {
-    width: 100%;
-    border: 1px solid var(--color-line);
-    background-color: #fff;
-    border-radius: 0.6rem;
-    padding: 0.55rem 0.7rem;
-    font-size: 0.925rem;
-    line-height: 1.3rem;
+  .tx-display {
+    font-size: 1.5rem;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    font-variation-settings: "opsz" 72, "wdth" 88;
   }
-  .field::placeholder {
-    color: #a9a094;
+  .tx-guess {
+    font-size: 1.375rem;
+    line-height: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variation-settings: "opsz" 48, "wdth" 90;
   }
-  .btn {
+  .tx-name {
+    font-size: 0.9375rem;
+    line-height: 1.2;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .tx-body {
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    font-weight: 450;
+    letter-spacing: -0.005em;
+  }
+  .tx-small {
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  /* Labels stay in sentence case: weight and a quieter ink do the work caps used to. */
+  .tx-label {
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    font-variation-settings: "opsz" 24, "wdth" 92;
+  }
+  .tx-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "ss01";
+  }
+}
+
+/* ------------------------------------------------------------
+   Surfaces and controls
+   ------------------------------------------------------------ */
+@layer components {
+  .sticker {
+    background: var(--card);
+    border-radius: 20px;
+    box-shadow: var(--lift);
+  }
+  .pill {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 0.4rem;
-    border-radius: 0.7rem;
-    padding: 0.6rem 1rem;
-    font-weight: 600;
-    font-size: 0.925rem;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
-  }
-  .btn:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-  .btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-  .btn-primary {
-    background-color: var(--color-ink);
-    color: #fffdf7;
-  }
-  .btn-primary:hover:not(:disabled) {
-    background-color: #2b2622;
-  }
-  .btn-ghost {
-    background-color: transparent;
-    border-color: var(--color-line);
-    color: var(--color-ink);
-  }
-  .btn-ghost:hover:not(:disabled) {
-    background-color: #efe9dc;
-  }
-  .dot {
-    width: 0.5rem;
-    height: 0.5rem;
+    height: 2.5rem;
+    padding: 0 0.95rem;
     border-radius: 999px;
-    background-color: var(--color-line);
+    background: var(--card);
+    color: var(--ink);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    box-shadow: var(--lift);
+    transition:
+      transform 0.25s var(--ease-spring),
+      box-shadow 0.25s var(--ease-out),
+      opacity 0.2s;
+  }
+  .pill:hover {
+    transform: translateY(-1.5px);
+    box-shadow: var(--lift-hi);
+  }
+  .pill:active {
+    transform: translateY(0) scale(0.95);
+    transition-duration: 0.08s;
+  }
+  .pill:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .pill-ghost {
+    background: rgb(255 255 255 / 0.32);
+    box-shadow: none;
+  }
+  .pill-ghost:hover {
+    background: rgb(255 255 255 / 0.6);
+    box-shadow: none;
+  }
+  .pill-ink {
+    background: var(--ink);
+    color: #fff;
+  }
+  .pill-icon {
+    width: 2.5rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  /* The header's controls: one frosted capsule tinted by the room, not a row of white buttons. */
+  .dock {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.3);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.32);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    backdrop-filter: blur(14px) saturate(1.5);
+  }
+  .dock-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 2.25rem;
+    padding: 0 0.85rem;
+    border-radius: 999px;
+    color: var(--ink);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    transition: transform 0.25s var(--ease-spring);
+  }
+  .dock-item:active {
+    transform: scale(0.93);
+    transition-duration: 0.08s;
+  }
+  .dock-item-icon {
+    width: 2.25rem;
+    padding: 0;
+    justify-content: center;
   }
 }
 
-@keyframes blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
+/* The paper column is sized by viewport height so the table fits one screen. */
+.paper-col {
+  width: min(100%, max(300px, calc(100dvh - 420px)));
+}
+@media (min-width: 1024px) {
+  .paper-col {
+    width: min(100%, max(400px, calc(100dvh - 300px)));
   }
 }
-.thinking {
-  animation: blink 1.1s ease-in-out infinite;
+.paper {
+  box-shadow: var(--float);
+}
+/* A faint tooth to the paper. Only the screen sees it: the models get clean ink on white. */
+.paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .35 0 0 0 0 .3 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* A wrong guess is struck through, drawn left to right like a pen. */
+.is-wrong .strike {
+  position: relative;
+}
+.is-wrong .strike::after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 54%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transform-origin: left center;
+  animation: strike 0.34s var(--ease-out) both;
+}
+
+.trail-fade {
+  -webkit-mask-image: linear-gradient(to right, #000 72%, transparent);
+  mask-image: linear-gradient(to right, #000 72%, transparent);
+}
+
+/* Creatures */
+.creature-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5.2s infinite;
+}
+.lid {
+  transform-box: fill-box;
+  transform-origin: top center;
+  transition: transform 0.3s var(--ease-out);
+}
+.creature-z {
+  animation: drift-z 2.4s ease-in-out infinite;
+}
+
+/* Speech bubbles get a little tail at their bottom left. */
+.speech::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  bottom: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+/* Live: a dot with a ring that keeps breathing out. */
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: inherit;
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* A marker line through a wrong guess, in the color of whoever said it. */
+.marker-strike {
+  position: relative;
+}
+.marker-strike::after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 52%;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--c, currentColor);
+  transform: rotate(-2deg);
+  opacity: 0.85;
+}
+
+/* The ribbon under the stamp catches the light once. */
+.ribbon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: shine 1.1s 1.1s var(--ease-out) forwards;
+}
+
+.lane-card:not(:disabled):hover {
+  transform: translateY(-1.5px);
+}
+.lane-card:not(:disabled):active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.think-dot {
+  animation: think 0.9s ease-in-out infinite;
+}
+.clock-ring {
+  animation: ring linear forwards;
+}
+.clock-urgent {
+  animation: urgent 1s ease-in-out infinite;
+}
+.burst-fleck {
+  animation: burst 1s cubic-bezier(0.16, 0.8, 0.3, 1) both;
+}
+.idle-bob {
+  animation: bob 3.4s ease-in-out infinite;
+}
+
+@keyframes strike {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
+@keyframes think {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(-2.5px);
+  }
+}
+@keyframes ring {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: var(--len);
+  }
+}
+@keyframes urgent {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+@keyframes burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), calc(var(--y) + 70px)) rotate(var(--r)) scale(1);
+  }
+}
+@keyframes drift-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px) scale(0.7);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(6px, -12px) scale(1.1);
+  }
+}
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  80%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+@keyframes shine {
+  to {
+    transform: translateX(120%);
+  }
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
+  body {
+    transition: none;
+  }
+  .creature-blink,
+  .think-dot,
+  .clock-urgent,
+  .burst-fleck,
+  .idle-bob,
+  .creature-z,
+  .live-dot::after,
+  .ribbon::after,
+  .is-wrong .strike::after {
+    animation: none;
+  }
+  .lane-card:hover,
+  .lane-card:active {
+    transform: none;
+  }
+  .clock-ring {
+    animation: none;
+  }
+  .burst {
+    display: none;
+  }
+  .pill,
+  .pill:hover,
+  .pill:active {
+    transform: none;
   }
 }

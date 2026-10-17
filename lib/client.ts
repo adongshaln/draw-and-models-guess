@@ -51,16 +51,3 @@ export function loadSeat(code: string): Seat | null {
 export function saveSeat(code: string, seat: Seat) {
   write(seatKey(code), seat);
 }
-
-/** One colour per seat, so a lane is recognisable before you read the name. */
-export const COLORS = ["#e2402a", "#2f6fed", "#0f9d58", "#b45cff", "#e08a00", "#0f9d9d", "#c2185b", "#5b6b00"];
-
-export function colorFor(players: { id: string }[], id: string): string {
-  const i = players.findIndex((p) => p.id === id);
-  return COLORS[(i < 0 ? 0 : i) % COLORS.length];
-}
-
-export function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0]?.toUpperCase() ?? "");
-}
