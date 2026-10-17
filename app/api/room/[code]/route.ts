@@ -50,6 +50,7 @@ type Body = {
   name?: unknown;
   endpoint?: unknown;
   model?: unknown;
+  params?: unknown;
   image?: unknown;
   round?: unknown;
 };
