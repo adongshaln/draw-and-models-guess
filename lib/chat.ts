@@ -8,10 +8,12 @@
  */
 /**
  * 自定义接口没有"关掉思考"的开关，预算给紧了一定出事：模型先把 token 花在
- * 推理上，交回来的是空字符串，或者半截词（"电子钟"只剩"电子"）。预设表里的
- * 模型各有调过的预算，走自定义的一律按这个宽裕值。
+ * 推理上，交回来的是空字符串，或者半截词（"电子钟"只剩"电子"）。
+ * 10k 是上限不是消耗——思考关掉的模型答完就停，关不掉的也够它想完再答。
  */
-const DEFAULT_MAX_TOKENS = 200;
+const DEFAULT_MAX_TOKENS = 10000;
+/** 有的厂商会嫌 10k 太大直接 400，退到这一档再试一次。 */
+const FALLBACK_MAX_TOKENS = 4096;
 const MAX_BYTES = 1_000_000;
 const TIMEOUT_MS = 25_000;
 
@@ -87,24 +89,35 @@ export async function askModel(opts: {
   const started = Date.now();
   const timeout = AbortSignal.timeout(TIMEOUT_MS);
   const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout;
+  const url = chatUrl(opts.endpoint);
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${opts.apiKey}`,
+    "User-Agent": "sketch-test/1.0",
+  };
 
-  const res = await fetch(chatUrl(opts.endpoint), {
-    method: "POST",
-    signal,
-    redirect: "manual", // a redirect here is a different host than the one we vetted
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${opts.apiKey}`,
-      "User-Agent": "draw-and-models-guess/1.0",
-    },
-    body: JSON.stringify(body),
-  });
+  const first = Number((body as { max_tokens?: unknown }).max_tokens) || DEFAULT_MAX_TOKENS;
+  const budgets = first > FALLBACK_MAX_TOKENS ? [first, FALLBACK_MAX_TOKENS] : [first];
 
-  if (res.status >= 300 && res.status < 400) throw new Error(`接口返回了重定向（${res.status}）。`);
-  if (!res.ok) {
-    const detail = (await res.text().catch(() => "")).slice(0, 200);
-    throw new Error(`模型接口返回 ${res.status}。${detail}`.trim());
+  let res: Response | null = null;
+  let failure = "";
+  for (const budget of budgets) {
+    res = await fetch(url, {
+      method: "POST",
+      signal,
+      redirect: "manual", // a redirect here is a different host than the one we vetted
+      headers,
+      body: JSON.stringify({ ...body, max_tokens: budget }),
+    });
+    if (res.ok) break;
+    if (res.status >= 300 && res.status < 400) throw new Error(`接口返回了重定向（${res.status}）。`);
+    failure = (await res.text().catch(() => "")).slice(0, 200);
+    // 只对"预算太大"这一类 400 退档重试，别的错误照实抛。
+    const tooBig = res.status === 400 && /max_tokens|maximum|too large|too many/i.test(failure);
+    if (!tooBig) break;
   }
+  if (!res || !res.ok) throw new Error(`模型接口返回 ${res?.status ?? 0}。${failure}`.trim());
+
   const length = Number(res.headers.get("content-length") ?? 0);
   if (length > MAX_BYTES) throw new Error("模型返回的数据太大。");
 

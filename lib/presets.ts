@@ -1,15 +1,10 @@
 /**
- * Model presets, taken from Nutlope/open-pictionary (lib/racers.ts).
+ * 模型预设。每个预设打包三件事：接口地址、模型 ID、以及**让这个模型少想/别想**
+ * 的那组请求字段。
  *
- * This table is the reason the preset picker exists. Every one of these models
- * is a vision model that can name a doodle, and every one of them has a
- * different switch for turning reasoning off. Get the switch wrong and nothing
- * errors: the model reasons for hundreds of tokens, runs out of budget, and
- * answers nothing. Those notes are below, verbatim in spirit from the runs that
- * produced them.
- *
- * All of them are on Together AI. Any other OpenAI-compatible endpoint works
- * too — pick "Custom" and type it in — but then you own the parameters.
+ * 这最后一件是重点。会思考的模型不会报错，它只会闷头想，然后交回空字符串或者
+ * 半截词（"电子钟"只剩"电子"）。每个厂商的开关还不一样，所以这里按厂商分开写，
+ * 并且尽量用官方文档里"最低"的那一档。
  */
 export type Preset = {
   key: string;
@@ -17,21 +12,46 @@ export type Preset = {
   lab: string;
   endpoint: string;
   model: string;
-  /** Extra request fields: the thinking switch, and room for what reasoning slips through. */
+  /** 额外请求字段：关思考的开关，以及给思考留的预算。 */
   params: Record<string, unknown>;
 };
 
 const TOGETHER = "https://api.together.xyz/v1";
+const DEEPSEEK = "https://api.deepseek.com";
+const GOOGLE = "https://generativelanguage.googleapis.com/v1beta/openai";
+
+/** 10k 是上限不是消耗：思考关掉的模型答完就停，关不掉的也够它想完再答。 */
+const BUDGET = 10000;
 
 export const PRESETS: Preset[] = [
+  {
+    key: "deepseek-official",
+    label: "DeepSeek Flash（官方）",
+    lab: "DeepSeek",
+    endpoint: DEEPSEEK,
+    model: "deepseek-flash",
+    // 官方文档：思考模式默认开启、effort 默认 high。不传这两个字段，它每次
+    // 都会先想一大段。deepseek-flash 本身支持图像。
+    params: { thinking: { type: "disabled" }, reasoning_effort: "low", max_tokens: BUDGET },
+  },
+  {
+    key: "gemini-official",
+    label: "Gemini（官方兼容端点）",
+    lab: "Google",
+    endpoint: GOOGLE,
+    model: "gemini-2.5-flash",
+    // Gemini 默认会思考，OpenAI 兼容层认 reasoning_effort。模型 ID 记得改成
+    // 你自己账号里有的那个。
+    params: { reasoning_effort: "low", max_tokens: BUDGET },
+  },
   {
     key: "kimi-k3",
     label: "Kimi K3",
     lab: "Moonshot",
     endpoint: TOGETHER,
     model: "moonshotai/Kimi-K3",
-    // About a second most of the time, with a long tail.
-    params: { reasoning: { enabled: false }, max_tokens: 48 },
+    // 大约一秒，但有长尾。
+    params: { reasoning: { enabled: false }, max_tokens: BUDGET },
   },
   {
     key: "qwen3-8-flash",
@@ -39,9 +59,9 @@ export const PRESETS: Preset[] = [
     lab: "Qwen",
     endpoint: TOGETHER,
     model: "Qwen/Qwen3.8-Flash",
-    // Qwen3.8 2.4T rejects images on serverless; the Flash one takes them.
-    // It also refuses reasoning_effort alongside enable_thinking: false.
-    params: { chat_template_kwargs: { enable_thinking: false }, max_tokens: 40 },
+    // Qwen3.8 2.4T 在 serverless 上拒图，Flash 这个收图。
+    // 它也不接受 reasoning_effort 和 enable_thinking: false 同时出现。
+    params: { chat_template_kwargs: { enable_thinking: false }, max_tokens: BUDGET },
   },
   {
     key: "glm-5-3-flash",
@@ -49,9 +69,7 @@ export const PRESETS: Preset[] = [
     lab: "Z.ai",
     endpoint: TOGETHER,
     model: "zai-org/GLM-5.3-Flash",
-    // Usually answers with no reasoning at all, but now and then it thinks a
-    // few dozen tokens first; a tight cap turns those into empty replies.
-    params: { reasoning_effort: "low", chat_template_kwargs: { enable_thinking: false }, max_tokens: 160 },
+    params: { reasoning_effort: "low", chat_template_kwargs: { enable_thinking: false }, max_tokens: BUDGET },
   },
   {
     key: "minimax-m3",
@@ -59,8 +77,8 @@ export const PRESETS: Preset[] = [
     lab: "MiniMax",
     endpoint: TOGETHER,
     model: "MiniMaxAI/MiniMax-M3",
-    // The only switch that fully stops its reasoning.
-    params: { thinking: { type: "disabled" }, max_tokens: 24 },
+    // 只有这个开关能完全停住它的思考。
+    params: { thinking: { type: "disabled" }, max_tokens: BUDGET },
   },
   {
     key: "deepseek-v4-1-flash",
@@ -68,7 +86,7 @@ export const PRESETS: Preset[] = [
     lab: "DeepSeek",
     endpoint: TOGETHER,
     model: "deepseek-ai/DeepSeek-V4.1-Flash",
-    params: { thinking: { type: "disabled" }, max_tokens: 24 },
+    params: { thinking: { type: "disabled" }, reasoning_effort: "low", max_tokens: BUDGET },
   },
   {
     key: "nemotron-3-5-super",
@@ -76,8 +94,7 @@ export const PRESETS: Preset[] = [
     lab: "NVIDIA",
     endpoint: TOGETHER,
     model: "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
-    // Sees sketches and answers in about half a second with this off.
-    params: { chat_template_kwargs: { enable_thinking: false }, max_tokens: 24 },
+    params: { chat_template_kwargs: { enable_thinking: false }, max_tokens: BUDGET },
   },
   {
     key: "muse-spark",
@@ -85,9 +102,8 @@ export const PRESETS: Preset[] = [
     lab: "Meta",
     endpoint: TOGETHER,
     model: "meta-models/Muse-Spark-Open-816B-A42B",
-    // Any of reasoning.enabled, enable_thinking or thinking.type stops it;
-    // reasoning_effort "none" makes it return nothing at all.
-    params: { reasoning: { enabled: false }, max_tokens: 24 },
+    // reasoning_effort "none" 会让它一个字都不返回，所以用 enabled: false。
+    params: { reasoning: { enabled: false }, max_tokens: BUDGET },
   },
 ];
 
@@ -95,7 +111,7 @@ export function presetByKey(key: string): Preset | undefined {
   return PRESETS.find((p) => p.key === key);
 }
 
-/** True when the preset still matches what the form says. */
+/** 预设是否还和表单里填的一致。 */
 export function presetMatches(preset: Preset, endpoint: string, model: string): boolean {
   return preset.endpoint === endpoint.trim() && preset.model === model.trim();
 }
