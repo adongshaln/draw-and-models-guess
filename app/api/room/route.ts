@@ -24,12 +24,12 @@ export async function POST(req: Request) {
   const model = typeof body?.model === "string" ? body.model.trim().slice(0, 80) : "";
 
   if (!name || !endpoint || !model) {
-    return NextResponse.json({ error: "A name, an endpoint and a model are all required." }, { status: 400, headers: noStore });
+    return NextResponse.json({ error: "名字、接口地址、模型 ID 都要填。" }, { status: 400, headers: noStore });
   }
   try {
     assertEndpointShape(endpoint);
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Bad endpoint." }, { status: 400, headers: noStore });
+    return NextResponse.json({ error: e instanceof Error ? e.message : "接口地址不对。" }, { status: 400, headers: noStore });
   }
 
   const host = {
@@ -63,5 +63,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ error: "Could not open a room. Try again." }, { status: 503, headers: noStore });
+  return NextResponse.json({ error: "开房失败，再试一次。" }, { status: 503, headers: noStore });
 }

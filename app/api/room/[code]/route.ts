@@ -32,9 +32,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
   const token = new URL(req.url).searchParams.get("p") ?? "";
 
   const room = await getRoom(code);
-  if (!room) return fail("No such room.", 404);
+  if (!room) return fail("没有这个房间。", 404);
   const me = playerByToken(room, token);
-  if (!me) return fail("You are not in this room.", 403);
+  if (!me) return fail("你不在这个房间里。", 403);
 
   // Phases that only end on a clock are moved on here, lazily, on read.
   if (transitionDue(room, Date.now())) {
@@ -61,17 +61,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   const action = typeof body?.action === "string" ? body.action : "";
 
   if (action === "join") return join(code, body);
-  if (!action) return fail("No action.");
+  if (!action) return fail("没有指定操作。");
 
   const token = typeof body?.token === "string" ? body.token : "";
   const room = await getRoom(code);
-  if (!room) return fail("No such room.", 404);
+  if (!room) return fail("没有这个房间。", 404);
   const me = playerByToken(room, token);
-  if (!me) return fail("You are not in this room.", 403);
+  if (!me) return fail("你不在这个房间里。", 403);
 
   if (action === "start") {
     if (room.phase !== "lobby") return NextResponse.json(publicRoom(room, me.id), { headers: noStore });
-    if (room.players[0]?.id !== me.id) return fail("Only the host can start.", 403);
+    if (room.players[0]?.id !== me.id) return fail("只有房主能开始。", 403);
     const next = await withRoomLock(code, (r) => (r && r.phase === "lobby" ? startGame(r, Date.now()) : null));
     return NextResponse.json(publicRoom(next ?? room, me.id), { headers: noStore });
   }
@@ -91,7 +91,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     // Best effort live preview for the people watching. A dropped frame is fine.
     if (room.phase !== "drawing" || room.drawerId !== me.id) return NextResponse.json({ ok: false }, { headers: noStore });
     const image = typeof body?.image === "string" && body.image.length <= MAX_IMAGE_CHARS && IMAGE_RE.test(body.image) ? body.image : "";
-    if (!image) return fail("Bad preview.");
+    if (!image) return fail("预览图不对。");
     await withRoomLock(code, (r) => {
       if (!r || r.phase !== "drawing" || r.drawerId !== me.id) return null;
       return { ...r, image, rev: r.rev + 1 };
@@ -111,7 +111,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     return NextResponse.json(publicRoom(next ?? room, me.id), { headers: noStore });
   }
 
-  return fail("Unknown action.");
+  return fail("未知操作。");
 }
 
 async function join(code: string, body: Body | null) {
@@ -123,16 +123,16 @@ async function join(code: string, body: Body | null) {
   // A browser that already holds a seat just takes it back.
   if (token) {
     const room = await getRoom(code);
-    if (!room) return fail("No such room.", 404);
+    if (!room) return fail("没有这个房间。", 404);
     const me = playerByToken(room, token);
     if (me) return NextResponse.json({ playerId: me.id, token: me.token }, { headers: noStore });
   }
 
-  if (!name || !endpoint || !model) return fail("A name, an endpoint and a model are all required.");
+  if (!name || !endpoint || !model) return fail("名字、接口地址、模型 ID 都要填。");
   try {
     assertEndpointShape(endpoint);
   } catch (e) {
-    return fail(e instanceof Error ? e.message : "Bad endpoint.");
+    return fail(e instanceof Error ? e.message : "接口地址不对。");
   }
 
   const player = {
@@ -151,26 +151,26 @@ async function join(code: string, body: Body | null) {
 
   const next = await withRoomLock(code, (r): Room | null => {
     if (!r) {
-      state.error = "No such room.";
+      state.error = "没有这个房间。";
       state.status = 404;
       return null;
     }
     if (r.phase !== "lobby") {
-      state.error = "That game has already started.";
+      state.error = "这局已经开始了。";
       return null;
     }
     if (r.players.length >= MAX_PLAYERS) {
-      state.error = `That room is full (${MAX_PLAYERS} players).`;
+      state.error = `房间满了（最多 ${MAX_PLAYERS} 人）。`;
       return null;
     }
     if (r.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-      state.error = "Somebody in that room already has that name.";
+      state.error = "房间里已经有人用这个名字了。";
       return null;
     }
     return addPlayer(r, player);
   });
 
   if (state.error) return fail(state.error, state.status);
-  if (!next || !playerById(next, player.id)) return fail("Could not join.", 409);
+  if (!next || !playerById(next, player.id)) return fail("加入失败。", 409);
   return NextResponse.json({ playerId: player.id, token: player.token }, { headers: noStore });
 }

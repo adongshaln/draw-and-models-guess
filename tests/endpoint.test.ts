@@ -39,15 +39,15 @@ describe("assertEndpointShape", () => {
   });
 
   it("refuses loopback and private hosts", () => {
-    expect(() => assertEndpointShape("https://localhost:8080/v1")).toThrow(/not allowed/);
-    expect(() => assertEndpointShape("https://10.0.0.5/v1")).toThrow(/not allowed/);
-    expect(() => assertEndpointShape("https://169.254.169.254/latest")).toThrow(/not allowed/);
-    expect(() => assertEndpointShape("https://metadata.internal/v1")).toThrow(/not allowed/);
-    expect(() => assertEndpointShape("https://printer.local/v1")).toThrow(/not allowed/);
+    expect(() => assertEndpointShape("https://localhost:8080/v1")).toThrow(/不允许/);
+    expect(() => assertEndpointShape("https://10.0.0.5/v1")).toThrow(/不允许/);
+    expect(() => assertEndpointShape("https://169.254.169.254/latest")).toThrow(/不允许/);
+    expect(() => assertEndpointShape("https://metadata.internal/v1")).toThrow(/不允许/);
+    expect(() => assertEndpointShape("https://printer.local/v1")).toThrow(/不允许/);
   });
 
   it("refuses credentials in the URL", () => {
-    expect(() => assertEndpointShape("https://user:pass@api.example.com/v1")).toThrow(/credentials/);
+    expect(() => assertEndpointShape("https://user:pass@api.example.com/v1")).toThrow(/账号密码/);
   });
 
   it("refuses nonsense", () => {

@@ -25,24 +25,24 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   const body = (await req.json().catch(() => null)) as { token?: unknown; apiKey?: unknown } | null;
   const token = typeof body?.token === "string" ? body.token : "";
   const apiKey = typeof body?.apiKey === "string" ? body.apiKey.trim() : "";
-  if (!apiKey) return fail("No API key.");
+  if (!apiKey) return fail("没有 API 密钥。");
 
   const room = await getRoom(code);
-  if (!room) return fail("No such room.", 404);
+  if (!room) return fail("没有这个房间。", 404);
   const me = playerByToken(room, token);
-  if (!me) return fail("You are not in this room.", 403);
+  if (!me) return fail("你不在这个房间里。", 403);
 
-  if (room.phase !== "guessing") return fail("Nobody is guessing right now.", 409);
-  if (!room.image) return fail("There is no drawing to look at.", 409);
-  if (solvedBy(room, me.id)) return fail("You already got it.", 409);
+  if (room.phase !== "guessing") return fail("现在没人在猜。", 409);
+  if (!room.image) return fail("没有可看的画。", 409);
+  if (solvedBy(room, me.id)) return fail("你已经猜中了。", 409);
   const mine = guessesBy(room, me.id);
-  if (mine.length >= MAX_ATTEMPTS) return fail("That was your third look.", 409);
+  if (mine.length >= MAX_ATTEMPTS) return fail("三次机会用完了。", 409);
 
   let endpoint: URL;
   try {
     endpoint = await assertSafeEndpoint(me.endpoint);
   } catch (e) {
-    return fail(e instanceof Error ? e.message : "Bad endpoint.");
+    return fail(e instanceof Error ? e.message : "接口地址不对。");
   }
 
   let raw = "";
@@ -60,7 +60,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     raw = out.text;
     latencyMs = out.latencyMs;
   } catch (e) {
-    const message = e instanceof Error ? e.message : "The model call failed.";
+    const message = e instanceof Error ? e.message : "模型调用失败。";
     return NextResponse.json({ error: message, latencyMs: 0 }, { status: 502, headers: noStore });
   }
 

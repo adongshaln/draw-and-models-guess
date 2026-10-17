@@ -21,7 +21,7 @@ export default function Home() {
   useEffect(() => {
     const saved = loadMe();
     if (saved) setMe(saved);
-    // A shared invite link lands here as /?room=ABCDE.
+    // 邀请链接长这样：/?room=ABCDE
     const invited = new URLSearchParams(window.location.search).get("room");
     if (invited) setCode(invited.toUpperCase().slice(0, 8));
   }, []);
@@ -43,17 +43,17 @@ export default function Home() {
     setMe((current) => ({ ...current, presetKey: preset.key, endpoint: preset.endpoint, model: preset.model }));
   }
 
-  /** The preset's request fields, but only while the form still says what it said. */
+  /** 预设的请求字段，但只在表单还和预设一致时才发。 */
   function paramsFor(): Record<string, unknown> | undefined {
     const preset = presetByKey(me.presetKey ?? "");
     return preset && presetMatches(preset, me.endpoint, me.model) ? preset.params : undefined;
   }
 
   function valid(): string | null {
-    if (!me.name.trim()) return "Pick a name.";
-    if (!me.endpoint.trim().startsWith("https://")) return "The endpoint has to start with https://";
-    if (!me.model.trim()) return "Name the model you want to play with.";
-    if (!me.apiKey.trim()) return "Your API key is missing.";
+    if (!me.name.trim()) return "先起个名字。";
+    if (!me.endpoint.trim().startsWith("https://")) return "接口地址要以 https:// 开头。";
+    if (!me.model.trim()) return "填一个你要用的模型。";
+    if (!me.apiKey.trim()) return "API 密钥还没填。";
     return null;
   }
 
@@ -70,12 +70,12 @@ export default function Home() {
         body: JSON.stringify(payload),
       });
       const data = (await res.json()) as { code?: string; playerId?: string; token?: string; error?: string };
-      if (!res.ok || !data.code || !data.playerId || !data.token) throw new Error(data.error ?? "Could not open a room.");
+      if (!res.ok || !data.code || !data.playerId || !data.token) throw new Error(data.error ?? "开房失败。");
       saveMe({ ...me, name: payload.name, endpoint: payload.endpoint, model: payload.model });
       saveSeat(data.code, { playerId: data.playerId, token: data.token });
       router.push(`/room/${data.code}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not open a room.");
+      setError(e instanceof Error ? e.message : "开房失败。");
       setBusy(null);
     }
   }
@@ -84,7 +84,7 @@ export default function Home() {
     const problem = valid();
     if (problem) return setError(problem);
     const room = code.trim().toUpperCase();
-    if (room.length < 4) return setError("That room code looks too short.");
+    if (room.length < 4) return setError("房间码太短了。");
     setBusy("join");
     setError(null);
     try {
@@ -101,12 +101,12 @@ export default function Home() {
         body: JSON.stringify(payload),
       });
       const data = (await res.json()) as { playerId?: string; token?: string; error?: string };
-      if (!res.ok || !data.playerId || !data.token) throw new Error(data.error ?? "Could not join that room.");
+      if (!res.ok || !data.playerId || !data.token) throw new Error(data.error ?? "加入失败。");
       saveMe({ ...me, name: payload.name, endpoint: payload.endpoint, model: payload.model });
       saveSeat(room, { playerId: data.playerId, token: data.token });
       router.push(`/room/${room}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not join that room.");
+      setError(e instanceof Error ? e.message : "加入失败。");
       setBusy(null);
     }
   }
@@ -118,21 +118,21 @@ export default function Home() {
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center gap-4 px-4 py-10">
       <header className="flex items-center justify-between gap-3 px-1">
         <Wordmark />
-        <span className="tx-small hidden text-ink-2 sm:block">bring your own model</span>
+        <span className="tx-small hidden text-ink-2 sm:block">自带模型</span>
       </header>
 
       <section className="sticker p-5 sm:p-7">
-        <p className="tx-label text-ink-3">your seat</p>
-        <h1 className="tx-word mt-1">Draw &amp; models guess</h1>
+        <p className="tx-label text-ink-3">你的席位</p>
+        <h1 className="tx-word mt-1">你画，模型猜</h1>
         <p className="tx-body mt-2 max-w-md text-ink-2">
-          One person draws, every model at the table gets three looks at it, then the pencil passes on.
+          一个人画，桌上每个模型都有三次机会看这幅画，然后铅笔交给下一个人。
         </p>
 
         <div className="mt-5 flex flex-col gap-3">
           <label className="block">
-            <span className="tx-label text-ink-3">model</span>
+            <span className="tx-label text-ink-3">模型</span>
             <select className={`${FIELD} mt-1`} value={preset?.key ?? ""} onChange={(e) => pick(e.target.value)}>
-              <option value="">Custom — I will type the endpoint myself</option>
+              <option value="">自定义 —— 我自己填接口地址</option>
               {PRESETS.map((p) => (
                 <option key={p.key} value={p.key}>
                   {p.label} · {p.lab}
@@ -142,17 +142,17 @@ export default function Home() {
           </label>
           <p className="tx-small text-ink-3">
             {usingPreset
-              ? "This preset also sends the fields that switch reasoning off — without them a thinking model burns its budget and answers nothing."
-              : "A preset fills in the endpoint, the model id and the switch that stops it thinking out loud. Edit either field and the switch is dropped."}
+              ? "这个预设会顺手把「关掉思考」的请求字段一起发过去——不发的话，会思考的模型会把预算烧光，然后交白卷。"
+              : "预设会填好接口地址、模型 ID，以及那个让它别出声思考的开关。你手动改了这两个字段，开关就不发了。"}
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="tx-label text-ink-3">your name</span>
-              <input className={`${FIELD} mt-1`} value={me.name} maxLength={20} placeholder="ada" onChange={(e) => set("name", e.target.value)} />
+              <span className="tx-label text-ink-3">你的名字</span>
+              <input className={`${FIELD} mt-1`} value={me.name} maxLength={20} placeholder="阿达" onChange={(e) => set("name", e.target.value)} />
             </label>
             <label className="block">
-              <span className="tx-label text-ink-3">model id</span>
+              <span className="tx-label text-ink-3">模型 ID</span>
               <input
                 className={`${FIELD} mt-1 font-mono text-[0.8125rem]`}
                 value={me.model}
@@ -164,7 +164,7 @@ export default function Home() {
           </div>
 
           <label className="block">
-            <span className="tx-label text-ink-3">base url</span>
+            <span className="tx-label text-ink-3">接口地址</span>
             <input
               className={`${FIELD} mt-1 font-mono text-[0.8125rem]`}
               value={me.endpoint}
@@ -175,7 +175,7 @@ export default function Home() {
           </label>
 
           <label className="block">
-            <span className="tx-label text-ink-3">api key</span>
+            <span className="tx-label text-ink-3">API 密钥</span>
             <input
               className={`${FIELD} mt-1 font-mono text-[0.8125rem]`}
               type="password"
@@ -186,7 +186,7 @@ export default function Home() {
             />
           </label>
           <p className="tx-small text-ink-3">
-            The key stays in this browser. It rides along with each guess, gets used once and is never stored.
+            密钥只留在这个浏览器里。每次猜词随请求上来一次，转发给上面那个地址，用完就丢，服务端不保存。
           </p>
         </div>
 
@@ -194,21 +194,21 @@ export default function Home() {
 
         <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
           <button className="pill pill-ink h-11 px-5 text-[0.9375rem]" onClick={create} disabled={busy !== null}>
-            {busy === "create" ? "opening…" : "start a room"}
+            {busy === "create" ? "开房中…" : "开一局"}
           </button>
           <div className="flex items-center gap-2">
             <input
               className={`${FIELD} h-11 w-32 text-center font-mono tracking-[0.22em] uppercase`}
               value={code}
               maxLength={8}
-              placeholder="CODE"
+              placeholder="房间码"
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => {
                 if (e.key === "Enter") void join();
               }}
             />
             <button className="pill h-11 px-4" onClick={join} disabled={busy !== null || !code.trim()}>
-              {busy === "join" ? "joining…" : "join"}
+              {busy === "join" ? "加入中…" : "加入"}
             </button>
           </div>
         </div>
@@ -216,9 +216,9 @@ export default function Home() {
 
       <div className="grid gap-2.5 sm:grid-cols-3">
         {[
-          ["1 · draw", "The room deals a word. Only the artist sees it."],
-          ["2 · guess", "Every model gets three looks at the finished drawing."],
-          ["3 · score", "3 points for the first look, 2 for the second, 1 for the third."],
+          ["1 · 画", "房间发一个词，只有画手看得到。"],
+          ["2 · 猜", "所有模型对画好的图各有三次机会。"],
+          ["3 · 计分", "第一次猜中 3 分，第二次 2 分，第三次 1 分。"],
         ].map(([title, body]) => (
           <div key={title} className="sticker p-4">
             <p className="tx-label text-ink-3">{title}</p>

@@ -3,13 +3,13 @@ import { bricolage } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Draw & Models Guess",
-  description: "One person draws, everyone's model guesses. Three tries each, then the pencil passes on.",
+  title: "你画，模型猜",
+  description: "一个人画，桌上所有模型来猜。每个模型三次机会，然后换下一个人画。",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={bricolage.variable}>
+    <html lang="zh-CN" className={bricolage.variable}>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

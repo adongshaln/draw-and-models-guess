@@ -27,7 +27,7 @@ export function Clock({ deadline, total }: { deadline: number | null; total: num
   const elapsed = Math.max(0, Math.min(total, total - left));
 
   return (
-    <span className={`pill gap-2 pl-2 pr-3.5 ${urgent ? "clock-urgent" : ""}`} role="timer" aria-label={`${left} seconds left`} style={{ cursor: "default" }}>
+    <span className={`pill gap-2 pl-2 pr-3.5 ${urgent ? "clock-urgent" : ""}`} role="timer" aria-label={`还剩 ${left} 秒`} style={{ cursor: "default" }}>
       <svg viewBox="0 0 24 24" className="size-6 -rotate-90" aria-hidden>
         <circle cx="12" cy="12" r={R} fill="none" stroke="var(--ink-4)" strokeWidth="3.4" />
         <circle

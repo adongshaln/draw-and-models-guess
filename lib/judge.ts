@@ -1,34 +1,46 @@
 import { findWord, type Word } from "@/lib/words";
 
 /**
- * The referee. Everything here is pure and deterministic: no model is asked to
- * rule, so a room of players who all brought their own key never spends a token
- * on judging. That also means the ruling can be unit-tested, and that two
- * players on different machines always agree on the same answer.
+ * 裁判。全部是纯函数、确定性的：不问模型，所以一屋子自带 key 的玩家
+ * 不会为判词再花一分钱，而且判词可以被单元测试固定住。
+ *
+ * 中文和英文都要能判：词是中文的，但模型很可能用英文作答，所以同义词表
+ * 里中英混放，判词对两种文字一视同仁。
  */
 export type Verdict = "correct" | "close" | "wrong";
 
 const ARTICLES = new Set(["a", "an", "the", "some", "my", "your"]);
 
-/** Words that dress a guess up without changing what it names. */
+/** 包在答案外面的词，去掉之后不改变它指的是什么。 */
 const FILLER = new Set([
   "drawing", "draw", "sketch", "doodle", "picture", "image", "cartoon", "icon",
   "outline", "shape", "symbol", "emoji", "little", "small", "big", "cute",
   "of", "a", "an", "the", "simple",
+  // 中文的同类词，按子串整段去掉
+  "这是", "一只", "一个", "一条", "一张", "一幅", "这个", "那个", "画的", "简笔画",
+  "图案", "卡通", "图片", "涂鸦", "看起来像", "我猜是", "答案是",
 ]);
+
+/** 这几个单字只做整段剥离，而且都够虚，不会伤到真词。 */
+const CJK_PARTICLES = ["的", "了", "是"];
+
+const CJK = /[\u3400-\u9fff]/;
 
 export function normalize(s: string): string {
   return s
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, " ")
+    // 保留字母（含汉字）和数字，其余一律当分隔符
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
     .replace(/-/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function singular(w: string): string {
+  // 只对纯英文词做单数化：中文没有这个概念
+  if (!/^[a-z]+$/.test(w)) return w;
   if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";
   if (w.length > 4 && /(ches|shes|xes|sses)$/.test(w)) return w.slice(0, -2);
   if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss") && !w.endsWith("us")) return w.slice(0, -1);
@@ -44,11 +56,16 @@ function canon(s: string): string {
 }
 
 function stripFiller(s: string): string {
-  const kept = s.split(" ").filter((w) => w && !FILLER.has(w));
+  let out = s;
+  for (const w of FILLER) {
+    if (CJK.test(w) || w.length === 1) out = out.split(w).join(" ");
+  }
+  for (const w of CJK_PARTICLES) out = out.split(w).join(" ");
+  const kept = out.split(" ").filter((w) => w && !FILLER.has(w));
   return kept.length ? kept.join(" ") : s;
 }
 
-/** Levenshtein, capped at 1: we only care whether it is a typo or not. */
+/** 编辑距离，最多算到 1：只关心是不是打错一个字母。 */
 export function within1(a: string, b: string): boolean {
   if (Math.abs(a.length - b.length) > 1) return false;
   let i = 0;
@@ -72,8 +89,8 @@ export function within1(a: string, b: string): boolean {
 }
 
 /**
- * Turn a raw model reply into a guess: first line, no "it's a", no reasoning
- * block, no punctuation, at most four words.
+ * 把模型的原始回复洗成一个猜测：第一行、去掉思考块、去掉"这是一只"之类的
+ * 前缀、去掉标点、最多四个词。
  */
 export function cleanGuess(raw: string): string {
   let s = raw.replace(/<think>[\s\S]*?(<\/think>|$)/gi, " ");
@@ -90,13 +107,13 @@ export function cleanGuess(raw: string): string {
 }
 
 /**
- * Judge a cleaned guess against the secret word.
+ * 判一个洗好的猜测。
  *
- * - correct: the word, a listed synonym, the same thing with filler around it,
- *   or a one-letter typo on a long word.
- * - close: one contains the other, so the referee can say "warm" instead of
- *   "no" ("hot dog" for "dog" is still not a win, but it reads better).
- * - wrong: anything else.
+ * - correct：就是那个词、表里的同义词（中英皆可）、外面包了填充词、
+ *   或者长英文词打错一个字母。
+ * - close：一个包含另一个，给个"接近"的反馈（"热狗"对"狗"仍然不算中，
+ *   但读起来比"错"好）。
+ * - wrong：其它。
  */
 export function judgeGuess(guess: string, secret: string): Verdict {
   const g = canon(guess);
@@ -111,15 +128,17 @@ export function judgeGuess(guess: string, secret: string): Verdict {
     if (g === f || gs === f) return "correct";
     if (g.replace(/ /g, "") === f.replace(/ /g, "")) return "correct";
     if (gs.replace(/ /g, "") === f.replace(/ /g, "")) return "correct";
-    // Typo tolerance only on long words: "house" and "horse" are one edit apart.
-    if (f.length >= 8 && (within1(g, f) || within1(gs, f))) return "correct";
+    // 错字容忍只给长英文词：house 和 horse 只差一个字母。
+    if (/^[a-z]+$/.test(f) && f.length >= 8 && (within1(g, f) || within1(gs, f))) return "correct";
   }
 
   const plain = g.replace(/ /g, "");
-  if (plain.length >= 3) {
+  if (plain.length >= 2) {
     for (const form of forms) {
       const f = canon(form).replace(/ /g, "");
-      if (f.length >= 3 && (plain.includes(f) || f.includes(plain))) return "close";
+      // 中文按字包含就够了（"热狗"包含"狗"）；英文要三个字母起。
+      const minLen = CJK.test(f) ? 1 : 3;
+      if (f.length >= minLen && (plain.includes(f) || f.includes(plain))) return "close";
     }
   }
   return "wrong";

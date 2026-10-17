@@ -50,14 +50,14 @@ export function assertEndpointShape(raw: string): URL {
   try {
     url = new URL(raw.trim());
   } catch {
-    throw new Error("That endpoint is not a URL.");
+    throw new Error("这个接口地址不是合法的 URL。");
   }
-  if (url.protocol !== "https:") throw new Error("The endpoint must start with https://.");
-  if (url.username || url.password) throw new Error("Do not put credentials in the endpoint URL.");
+  if (url.protocol !== "https:") throw new Error("接口地址必须以 https:// 开头。");
+  if (url.username || url.password) throw new Error("接口地址里不要带账号密码。");
   const host = url.hostname.toLowerCase();
-  if (!host) throw new Error("That endpoint has no host.");
-  if (host === "localhost" || BLOCKED_HOST.test(host)) throw new Error("That host is not allowed.");
-  if (isIP(host) !== 0 && isPrivateAddress(host)) throw new Error("That host is not allowed.");
+  if (!host) throw new Error("接口地址里没有主机名。");
+  if (host === "localhost" || BLOCKED_HOST.test(host)) throw new Error("这个主机不允许访问。");
+  if (isIP(host) !== 0 && isPrivateAddress(host)) throw new Error("这个主机不允许访问。");
   return url;
 }
 
@@ -69,11 +69,11 @@ export async function assertSafeEndpoint(raw: string): Promise<URL> {
   try {
     addresses = await lookup(url.hostname, { all: true, verbatim: true });
   } catch {
-    throw new Error("Could not resolve that endpoint.");
+    throw new Error("解析不了这个接口地址。");
   }
-  if (addresses.length === 0) throw new Error("Could not resolve that endpoint.");
+  if (addresses.length === 0) throw new Error("解析不了这个接口地址。");
   for (const a of addresses) {
-    if (isPrivateAddress(a.address)) throw new Error("That endpoint resolves to a private address.");
+    if (isPrivateAddress(a.address)) throw new Error("这个地址解析到内网，不允许访问。");
   }
   return url;
 }

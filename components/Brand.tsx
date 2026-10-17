@@ -2,8 +2,8 @@ import Link from "next/link";
 import { GLYPH_PATH } from "@/lib/creatures";
 
 /**
- * The mark: a scribble loop that runs out to a finish dot, the same glyph the
- * other game uses, with the red dot standing in for the pencil.
+ * 标志：一条涂鸦的线绕一圈，跑到一个终点圆点上。用的是同一个字形，
+ * 红点代表铅笔的落点。
  */
 export function BrandGlyph({ className = "size-8" }: { className?: string }) {
   return (
@@ -17,10 +17,10 @@ export function BrandGlyph({ className = "size-8" }: { className?: string }) {
 
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" aria-label="Draw & Models Guess" className={`group flex shrink-0 items-center gap-1.5 rounded-xl text-ink ${className}`}>
+    <Link href="/" aria-label="你画，模型猜" className={`group flex shrink-0 items-center gap-1.5 rounded-xl text-ink ${className}`}>
       <BrandGlyph className="size-8 transition-transform duration-500 ease-[var(--ease-spring)] group-hover:-rotate-12" />
-      <span className="text-[1.25rem] leading-none font-extrabold tracking-[-0.04em] [font-variation-settings:'opsz'_48,'wdth'_85]">
-        draw &amp; models guess
+      <span className="text-[1.25rem] leading-none font-extrabold tracking-[-0.02em] [font-variation-settings:'opsz'_48,'wdth'_85]">
+        你画，模型猜
       </span>
     </Link>
   );

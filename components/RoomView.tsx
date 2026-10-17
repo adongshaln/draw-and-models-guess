@@ -57,7 +57,7 @@ export function RoomView({ code }: { code: string }) {
   meRef.current = me;
   seatRef.current = seat;
 
-  /* ---------------- join and resume ---------------- */
+  /* ---------------- 加入与恢复席位 ---------------- */
 
   useEffect(() => {
     const config = loadMe();
@@ -80,12 +80,12 @@ export function RoomView({ code }: { code: string }) {
           body: JSON.stringify({ action: "join", name: config.name, endpoint: config.endpoint, model: config.model }),
         });
         const data = (await res.json()) as { playerId?: string; token?: string; error?: string };
-        if (!res.ok || !data.playerId || !data.token) throw new Error(data.error ?? "Could not join that room.");
+        if (!res.ok || !data.playerId || !data.token) throw new Error(data.error ?? "加入失败。");
         const next = { playerId: data.playerId, token: data.token };
         saveSeat(code, next);
         if (alive) setSeat(next);
       } catch (e) {
-        if (alive) setFatal(e instanceof Error ? e.message : "Could not join that room.");
+        if (alive) setFatal(e instanceof Error ? e.message : "加入失败。");
       }
     })();
     return () => {
@@ -93,7 +93,7 @@ export function RoomView({ code }: { code: string }) {
     };
   }, [code, router]);
 
-  /* ---------------- polling ---------------- */
+  /* ---------------- 轮询 ---------------- */
 
   const poll = useCallback(async (): Promise<PublicRoom | null> => {
     const current = seatRef.current;
@@ -102,7 +102,7 @@ export function RoomView({ code }: { code: string }) {
       const res = await fetch(`/api/room/${code}?p=${encodeURIComponent(current.token)}`, { cache: "no-store" });
       const data = (await res.json()) as PublicRoom & { error?: string };
       if (!res.ok) {
-        setFatal(data.error ?? "Lost the room.");
+        setFatal(data.error ?? "与房间断开了。");
         return null;
       }
       roomRef.current = data;
@@ -120,14 +120,14 @@ export function RoomView({ code }: { code: string }) {
     return () => clearInterval(id);
   }, [seat, poll]);
 
-  /* ---------------- sound ---------------- */
+  /* ---------------- 声音 ---------------- */
 
   useEffect(() => {
     setSoundEnabled(soundOn());
     return onSoundChange(() => setSoundEnabled(soundOn()));
   }, []);
 
-  /* ---------------- the room colour ---------------- */
+  /* ---------------- 房间配色 ---------------- */
 
   useEffect(() => {
     if (!room) return;
@@ -135,7 +135,7 @@ export function RoomView({ code }: { code: string }) {
     document.body.style.setProperty("--room", color);
   }, [room]);
 
-  /* ---------------- actions ---------------- */
+  /* ---------------- 操作 ---------------- */
 
   const act = useCallback(
     async (action: string, extra: Record<string, unknown> = {}): Promise<PublicRoom | null> => {
@@ -150,7 +150,7 @@ export function RoomView({ code }: { code: string }) {
         });
         const data = (await res.json()) as PublicRoom & { error?: string };
         if (!res.ok) {
-          setError(data.error ?? "That did not work.");
+          setError(data.error ?? "没成功。");
           return null;
         }
         roomRef.current = data;
@@ -158,7 +158,7 @@ export function RoomView({ code }: { code: string }) {
         setError(null);
         return data;
       } catch {
-        setError("The server did not answer.");
+        setError("服务器没有响应。");
         return null;
       } finally {
         setBusy(false);
@@ -167,7 +167,7 @@ export function RoomView({ code }: { code: string }) {
     [code],
   );
 
-  /* ---------------- this browser runs its own model ---------------- */
+  /* ---------------- 这个浏览器跑自己的模型 ---------------- */
 
   const runModel = useCallback(
     async (round: number) => {
@@ -193,7 +193,7 @@ export function RoomView({ code }: { code: string }) {
           });
           const data = (await res.json()) as { error?: string; verdict?: string };
           if (!res.ok) {
-            setLaneError(data.error ?? "Your model could not answer.");
+            setLaneError(data.error ?? "你的模型没有回答。");
             break;
           }
           await poll();
@@ -204,7 +204,7 @@ export function RoomView({ code }: { code: string }) {
           await new Promise((resolve) => setTimeout(resolve, 700));
         }
       } catch {
-        setLaneError("Your model call failed.");
+        setLaneError("模型调用失败。");
       } finally {
         running.current = false;
         setThinking(false);
@@ -221,7 +221,7 @@ export function RoomView({ code }: { code: string }) {
     void runModel(room.round);
   }, [room, me, seat, runModel]);
 
-  /* ---------------- live preview while drawing ---------------- */
+  /* ---------------- 作画时的实时预览 ---------------- */
 
   const iAmDrawing = Boolean(room && room.phase === "drawing" && room.you === room.drawerId);
   const roundNow = room?.round ?? 0;
@@ -244,7 +244,7 @@ export function RoomView({ code }: { code: string }) {
     return () => clearInterval(id);
   }, [iAmDrawing, code, roundNow]);
 
-  /* ---------------- the win tune, once a round ---------------- */
+  /* ---------------- 揭晓时响一次 ---------------- */
 
   useEffect(() => {
     if (!room || room.phase !== "reveal") return;
@@ -261,15 +261,15 @@ export function RoomView({ code }: { code: string }) {
     }
   }, [room]);
 
-  /* ---------------- render ---------------- */
+  /* ---------------- 渲染 ---------------- */
 
   if (fatal) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-5 text-center">
         <h1 className="tx-display">{fatal}</h1>
-        <p className="tx-body text-ink-2">The room may have expired, or the code is wrong.</p>
+        <p className="tx-body text-ink-2">房间可能过期了，或者房间码不对。</p>
         <button className="pill pill-ink h-11 px-5" onClick={() => router.push("/")}>
-          back to the lobby
+          回大厅
         </button>
       </main>
     );
@@ -278,7 +278,7 @@ export function RoomView({ code }: { code: string }) {
   if (!room) {
     return (
       <main className="flex min-h-dvh items-center justify-center">
-        <p className="tx-body thinking text-ink-2">connecting to room {code}…</p>
+        <p className="tx-body thinking text-ink-2">正在连接房间 {code}…</p>
       </main>
     );
   }
@@ -296,19 +296,19 @@ export function RoomView({ code }: { code: string }) {
 
   const headline =
     room.phase === "drawing"
-      ? `${drawer?.name ?? "someone"} is drawing`
+      ? `${drawer?.name ?? "有人"}正在画`
       : room.phase === "guessing"
-        ? "the models are looking"
+        ? "模型正在看"
         : room.phase === "reveal"
-          ? "round over"
-          : "final board";
+          ? "本轮结束"
+          : "最终排名";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[1180px] flex-col gap-3 px-3 py-3 sm:px-5 sm:py-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <Wordmark />
         <div className="dock">
-          <span className="dock-item tx-num font-bold tracking-[0.2em]" title="room code">
+          <span className="dock-item tx-num font-bold tracking-[0.2em]" title="房间码">
             {room.code}
           </span>
           <button
@@ -323,11 +323,11 @@ export function RoomView({ code }: { code: string }) {
               }
             }}
           >
-            {copied ? "copied" : "invite"}
+            {copied ? "已复制" : "邀请"}
           </button>
           <button
             className="dock-item dock-item-icon"
-            aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+            aria-label={soundEnabled ? "静音" : "取消静音"}
             onClick={() => setSoundOn(!soundEnabled)}
           >
             <SoundIcon on={soundEnabled} />
@@ -337,14 +337,14 @@ export function RoomView({ code }: { code: string }) {
 
       {room.phase === "lobby" ? (
         <section className="sticker mx-auto mt-4 w-full max-w-xl p-6 text-center">
-          <p className="tx-label text-ink-3">lobby</p>
+          <p className="tx-label text-ink-3">大厅</p>
           <h1 className="tx-display mt-1">
-            {room.players.length < 2 ? "you are the only one here" : `${room.players.length} at the table`}
+            {room.players.length < 2 ? "现在只有你一个人" : `桌上有 ${room.players.length} 个人`}
           </h1>
           <p className="tx-body mx-auto mt-2 max-w-sm text-ink-2">
             {room.players.length < 2
-              ? "Send someone the room code. Or start alone and race your model against the clock."
-              : `The first artist is ${room.players[0]?.name}.`}
+              ? "把房间码发给朋友。或者一个人先开，看你的模型要几秒才猜中。"
+              : `第一个画手是 ${room.players[0]?.name}。`}
           </p>
 
           <ul className="mx-auto mt-5 flex w-full max-w-sm flex-col gap-2 text-left">
@@ -355,7 +355,7 @@ export function RoomView({ code }: { code: string }) {
                   <Creature color={s.color} shape={s.shape} size={34} />
                   <span className="tx-name truncate">{p.name}</span>
                   <span className="tx-small ml-auto truncate font-mono text-ink-3">{p.model}</span>
-                  {i === 0 ? <span className="tx-small rounded-full bg-ink px-1.5 py-[1px] text-[10px] font-bold text-white">host</span> : null}
+                  {i === 0 ? <span className="tx-small shrink-0 rounded-full bg-ink px-1.5 py-[1px] text-[10px] font-bold text-white">房主</span> : null}
                 </li>
               );
             })}
@@ -363,10 +363,10 @@ export function RoomView({ code }: { code: string }) {
 
           {isHost ? (
             <button className="pill pill-ink mt-5 h-11 px-5" disabled={busy} onClick={() => void act("start")}>
-              {busy ? "dealing…" : "start the game"}
+              {busy ? "发牌中…" : "开始游戏"}
             </button>
           ) : (
-            <p className="tx-small thinking mt-5 text-ink-2">waiting for {room.players[0]?.name} to start…</p>
+            <p className="tx-small thinking mt-5 text-ink-2">等 {room.players[0]?.name} 开始…</p>
           )}
         </section>
       ) : (
@@ -374,9 +374,7 @@ export function RoomView({ code }: { code: string }) {
           <section className="flex flex-col items-center gap-3">
             <div className="flex w-full flex-wrap items-center justify-between gap-2 px-1">
               <div className="min-w-0">
-                <p className="tx-label text-ink-3">
-                  {room.phase === "over" ? "final" : `round ${room.round} of ${room.totalRounds}`}
-                </p>
+                <p className="tx-label text-ink-3">{room.phase === "over" ? "全场结束" : `第 ${room.round} / ${room.totalRounds} 轮`}</p>
                 {canSeeWord && room.word ? (
                   <Word word={room.word} />
                 ) : (
@@ -392,12 +390,12 @@ export function RoomView({ code }: { code: string }) {
                   <Canvas handleRef={handle} />
                 ) : room.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={room.image} alt="the drawing" className="h-full w-full object-contain" />
+                  <img src={room.image} alt="这幅画" className="h-full w-full object-contain" />
                 ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center">
-                    <p className="tx-body font-semibold">{room.phase === "drawing" ? "nothing on the page yet" : "the artist ran out of time"}</p>
+                  <div className="flex h-full flex-col items-center justify-center gap-1.5 px-6 text-center">
+                    <p className="tx-body font-semibold">{room.phase === "drawing" ? "纸上还是空的" : "画手超时了"}</p>
                     <p className="tx-small text-ink-3">
-                      {room.phase === "drawing" ? `the drawing appears here as ${drawer?.name ?? "they"} work` : "nothing to look at"}
+                      {room.phase === "drawing" ? `${drawer?.name ?? "对方"}画的东西会出现在这里` : "没有可看的画"}
                     </p>
                   </div>
                 )}
@@ -413,19 +411,19 @@ export function RoomView({ code }: { code: string }) {
                     disabled={busy}
                     onClick={() => {
                       if ((handle.current?.ink() ?? 0) < 20) {
-                        setError("Put something on the page first.");
+                        setError("先在纸上画点东西。");
                         return;
                       }
                       void act("done", { image: handle.current?.snapshot(512) ?? null });
                     }}
                   >
-                    done — let them guess
+                    画完了，让他们猜
                   </button>
                   <button className="pill h-11 px-4" onClick={() => handle.current?.undo()}>
-                    undo
+                    撤销
                   </button>
                   <button className="pill pill-ghost h-11 px-4" onClick={() => handle.current?.clear()}>
-                    clear
+                    清空
                   </button>
                 </>
               ) : null}
@@ -433,32 +431,32 @@ export function RoomView({ code }: { code: string }) {
               {room.phase === "reveal" ? (
                 <>
                   <p className="tx-body w-full text-center text-ink-2 sm:w-auto">
-                    {last?.solvers.length ? `${last.solvers.length} solved it` : "nobody got it"}
+                    {last?.solvers.length ? `${last.solvers.length} 个模型猜中了` : "没有模型猜中"}
                   </p>
                   <button className="pill pill-ink h-11 px-5" disabled={busy} onClick={() => void act("next", { round: room.round })}>
-                    {room.round >= room.totalRounds ? "see the final board" : "next artist →"}
+                    {room.round >= room.totalRounds ? "看最终排名" : "下一位 →"}
                   </button>
                 </>
               ) : null}
 
               {room.phase === "over" ? (
                 <button className="pill pill-ink h-11 px-5" onClick={() => router.push("/")}>
-                  start another room
+                  再开一局
                 </button>
               ) : null}
             </div>
 
             {room.phase === "guessing" && !isDrawer ? (
               <p className="tx-small max-w-sm text-center text-ink-2">
-                the word is hidden until the reveal · your model has used {mine.length} of 3 looks
+                揭晓之前看不到词 · 你的模型已经用了 {mine.length} / 3 次
               </p>
             ) : null}
           </section>
 
           <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
-              <p className="tx-label text-ink-3">the field</p>
-              {thinking ? <span className="tx-small thinking text-ink-2">your model is looking…</span> : null}
+              <p className="tx-label text-ink-3">赛场</p>
+              {thinking ? <span className="tx-small thinking text-ink-2">你的模型正在看…</span> : null}
             </div>
 
             {laneError ? <p className="tx-small rounded-2xl bg-bad-soft px-3 py-2 text-bad">{laneError}</p> : null}
@@ -476,11 +474,11 @@ export function RoomView({ code }: { code: string }) {
                       <div className="flex items-center gap-1.5">
                         <span className="tx-name truncate">{p.name}</span>
                         {p.isDrawer && room.phase !== "over" ? (
-                          <span className="tx-small shrink-0 rounded-full bg-ink px-1.5 py-[1px] text-[10px] font-bold text-white">artist</span>
+                          <span className="tx-small shrink-0 rounded-full bg-ink px-1.5 py-[1px] text-[10px] font-bold text-white">画手</span>
                         ) : null}
                         <span className="tx-num tx-small ml-auto shrink-0 text-ink-2">{p.score}</span>
                       </div>
-                      <p className="tx-small truncate text-ink-3">{p.model}</p>
+                      <p className="tx-small truncate font-mono text-ink-3">{p.model}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-1">
                         {theirs.length === 0 ? (
                           p.id === room.you && thinking ? (
@@ -490,7 +488,7 @@ export function RoomView({ code }: { code: string }) {
                               ))}
                             </span>
                           ) : (
-                            <span className="tx-small text-ink-3">waiting</span>
+                            <span className="tx-small text-ink-3">等待中</span>
                           )
                         ) : (
                           theirs.map((g) => (
@@ -518,14 +516,14 @@ export function RoomView({ code }: { code: string }) {
 
             {room.history.length > 0 ? (
               <div className="mt-1 px-1">
-                <p className="tx-label text-ink-3">earlier</p>
+                <p className="tx-label text-ink-3">之前</p>
                 <ul className="mt-1 space-y-0.5">
                   {[...room.history].reverse().map((h) => {
-                    const who = room.players.find((p) => p.id === h.drawerId)?.name ?? "someone";
+                    const who = room.players.find((p) => p.id === h.drawerId)?.name ?? "有人";
                     return (
                       <li key={h.round} className="tx-small text-ink-3">
-                        <span className="font-semibold text-ink">{h.word}</span> · drawn by {who} ·{" "}
-                        {h.solvers.length === 0 ? "nobody solved it" : `${h.solvers.length} solved`}
+                        <span className="font-semibold text-ink">{h.word}</span> · {who} 画 ·{" "}
+                        {h.solvers.length === 0 ? "没人猜中" : `${h.solvers.length} 个猜中`}
                       </li>
                     );
                   })}
@@ -535,7 +533,7 @@ export function RoomView({ code }: { code: string }) {
 
             {room.phase === "over" ? (
               <div className="sticker mt-1 p-3">
-                <p className="tx-label text-ink-3">final board</p>
+                <p className="tx-label text-ink-3">最终排名</p>
                 <ol className="mt-1.5 space-y-1">
                   {ranked.map((p, i) => {
                     const s = seatOf(room.players, p.id);
@@ -556,7 +554,7 @@ export function RoomView({ code }: { code: string }) {
       )}
 
       <p className="sr-only" role="status">
-        {room.phase} round {room.round} of {room.totalRounds}
+        {room.phase} 第 {room.round} / {room.totalRounds} 轮
       </p>
 
       {error ? (

@@ -29,7 +29,7 @@ const LOCK_TTL_SECONDS = 10;
 export const storeMissing = Boolean(process.env.VERCEL) && !remote;
 
 export const STORE_HINT =
-  "This deployment has no shared store. Add an Upstash Redis integration (or set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN, or the KV_REST_API_* pair) and redeploy.";
+  "这个部署没有共享存储。请添加 Upstash Redis 集成（或设置 UPSTASH_REDIS_REST_URL 与 UPSTASH_REDIS_REST_TOKEN，或 KV_REST_API_* 这一对），然后重新部署。";
 
 async function cmd(args: (string | number)[]): Promise<unknown> {
   const res = await fetch(`${REST_URL}`, {

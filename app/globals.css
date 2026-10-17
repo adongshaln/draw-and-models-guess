@@ -44,7 +44,9 @@
   --color-close-soft: var(--close-soft);
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
-  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  /* Bricolage 管拉丁字母和数字，汉字落到系统里最像它的黑体上。 */
+  --font-sans: var(--font-bricolage), "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+    "Source Han Sans SC", ui-sans-serif, system-ui, sans-serif;
   --ease-out: var(--ease-out);
   --ease-spring: var(--ease-spring);
 }
@@ -140,6 +142,16 @@
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum", "ss01";
   }
+}
+
+/* 汉字在 -0.035em 的字距下会粘成一团：大标题给中文放开字距。 */
+html[lang="zh-CN"] .tx-word,
+html[lang="zh-CN"] .tx-display,
+html[lang="zh-CN"] .tx-guess {
+  letter-spacing: 0;
+}
+html[lang="zh-CN"] .tx-word {
+  line-height: 1.08;
 }
 
 /* ------------------------------------------------------------
