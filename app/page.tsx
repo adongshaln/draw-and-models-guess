@@ -188,6 +188,14 @@ export default function Home() {
           <p className="tx-small text-ink-3">
             密钥只留在这个浏览器里。每次猜词随请求上来一次，转发给上面那个地址，用完就丢，服务端不保存。
           </p>
+
+          <div className="rounded-2xl bg-[var(--card-2)] px-3.5 py-3">
+            <p className="tx-label">不留存任何数据</p>
+            <p className="tx-small mt-1 text-ink-2">
+              密钥只存在你自己的浏览器里，每次猜词用一次，我们不保存、不记录、不写日志。
+              房间数据（昵称、模型名、画、猜词记录）只活在这一局里，游戏结束后 5 分钟内自动销毁。
+            </p>
+          </div>
         </div>
 
         {error ? <p className="tx-small mt-4 rounded-2xl bg-bad-soft px-3.5 py-2.5 text-bad">{error}</p> : null}
@@ -218,7 +226,7 @@ export default function Home() {
         {[
           ["1 · 画", "房间发一个词，只有画手看得到。"],
           ["2 · 猜", "所有模型对画好的图各有三次机会。"],
-          ["3 · 计分", "第一次猜中 3 分，第二次 2 分，第三次 1 分。"],
+          ["3 · 计分", "第一次猜中 3 分，第二次 2 分，第三次 1 分；全员没猜中，画手 -1。"],
         ].map(([title, body]) => (
           <div key={title} className="sticker p-4">
             <p className="tx-label text-ink-3">{title}</p>

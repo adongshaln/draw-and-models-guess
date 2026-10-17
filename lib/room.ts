@@ -166,20 +166,20 @@ export function reveal(room: Room, now: number): Room {
   const next = clone(room);
   next.phase = "reveal";
   next.deadline = null;
-  next.history = [
-    ...room.history,
-    {
-      round: room.round,
-      drawerId: room.drawerId,
-      word: room.word ?? "",
-      solvers: room.players
-        .map((p) => {
-          const hit = solvedBy(room, p.id);
-          return hit ? { playerId: p.id, attempt: hit.attempt, points: pointsFor(hit.attempt) } : null;
-        })
-        .filter((x): x is { playerId: string; attempt: number; points: number } => x !== null),
-    },
-  ];
+  const solvers = room.players
+    .map((p) => {
+      const hit = solvedBy(room, p.id);
+      return hit ? { playerId: p.id, attempt: hit.attempt, points: pointsFor(hit.attempt) } : null;
+    })
+    .filter((x): x is { playerId: string; attempt: number; points: number } => x !== null);
+
+  // 一个都没猜中，画手扣一分：画得让人看不懂是有代价的。
+  if (solvers.length === 0) {
+    const artist = next.players.find((p) => p.id === room.drawerId);
+    if (artist) artist.score -= 1;
+  }
+
+  next.history = [...room.history, { round: room.round, drawerId: room.drawerId, word: room.word ?? "", solvers }];
   next.rev++;
   return next;
 }

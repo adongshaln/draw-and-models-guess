@@ -143,6 +143,32 @@ describe("reveal", () => {
     const room = reveal(startGame(makeRoom(), 1000, "cat"), 2000);
     expect(publicRoom(room, "p2").word).toBe("cat");
   });
+
+  it("全都没猜中，画手扣一分", () => {
+    let room = startGame(makeRoom(), 1000, "猫");
+    room = recordGuess(room, "p2", "狗", "wrong", 2000, "g1");
+    const done = reveal(room, 3000);
+    expect(done.players.find((p) => p.id === "p1")?.score).toBe(-1);
+    expect(done.history[0].solvers).toEqual([]);
+  });
+
+  it("有人猜中就不扣，画手还拿 +1", () => {
+    let room = startGame(makeRoom(), 1000, "猫");
+    room = recordGuess(room, "p2", "猫", "correct", 2000, "g1");
+    const done = reveal(room, 3000);
+    expect(done.players.find((p) => p.id === "p1")?.score).toBe(1);
+    expect(done.players.find((p) => p.id === "p2")?.score).toBe(3);
+  });
+
+  it("三次都猜错也是 0 分，扣分只落在画手身上", () => {
+    let room = startGame(makeRoom(), 1000, "猫");
+    room = recordGuess(room, "p2", "狗", "wrong", 2000, "g1");
+    room = recordGuess(room, "p2", "鱼", "wrong", 2000, "g2");
+    room = recordGuess(room, "p2", "鸟", "wrong", 2000, "g3");
+    const done = reveal(room, 3000);
+    expect(done.players.find((p) => p.id === "p2")?.score).toBe(0);
+    expect(done.players.find((p) => p.id === "p1")?.score).toBe(-1);
+  });
 });
 
 describe("nextRound", () => {

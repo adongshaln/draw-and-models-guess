@@ -440,7 +440,7 @@ export function RoomView({ code }: { code: string }) {
               {room.phase === "reveal" ? (
                 <>
                   <p className="tx-body w-full text-center text-ink-2 sm:w-auto">
-                    {last?.solvers.length ? `${last.solvers.length} 个模型猜中了` : "没有模型猜中"}
+                    {last?.solvers.length ? `${last.solvers.length} 个模型猜中了` : "没有模型猜中 · 画手 -1"}
                   </p>
                   <button className="pill pill-ink h-11 px-5" disabled={busy} onClick={() => void act("next", { round: room.round })}>
                     {room.round >= room.totalRounds ? "看最终排名" : "下一位 →"}

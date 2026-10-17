@@ -123,6 +123,13 @@ async function kvDel(key: string): Promise<void> {
 
 const roomKey = (code: string) => `damg:room:${code.toUpperCase()}`;
 
+/**
+ * 一局结束后只留 5 分钟：足够把最终榜看完，之后整间房（昵称、模型名、画、
+ * 猜词记录、席位 token）自己从 Redis 里消失。这是界面上那句"结束后销毁"
+ * 的实现，不是文案。
+ */
+export const OVER_TTL_SECONDS = 5 * 60;
+
 export async function getRoom(code: string): Promise<Room | null> {
   const raw = await kvGet(roomKey(code));
   if (!raw) return null;
@@ -133,8 +140,13 @@ export async function getRoom(code: string): Promise<Room | null> {
   }
 }
 
+/** 一局结束后只留 5 分钟；其余时间按房间寿命算。 */
+export function ttlFor(room: Room): number {
+  return room.phase === "over" ? OVER_TTL_SECONDS : ROOM_TTL_SECONDS;
+}
+
 export async function saveRoom(room: Room): Promise<void> {
-  await kvSet(roomKey(room.code), JSON.stringify(room), ROOM_TTL_SECONDS);
+  await kvSet(roomKey(room.code), JSON.stringify(room), ttlFor(room));
 }
 
 /** Create only if the code is free. */

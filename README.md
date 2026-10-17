@@ -23,8 +23,14 @@ The game ends when everyone has drawn once. Final board, then a new room.
 | first look | 3 |
 | second look | 2 |
 | third look | 1 |
+| never | 0 |
 
-The artist gets **+1 for every other model that solves their drawing**, so a clear drawing is worth something even when your own model is slow.
+The artist gets **+1 for every other model that solves their drawing**, so a clear drawing is worth something even when your own model is slow. And if **no model at all** solves it, the artist **loses 1**: a drawing nobody can read costs you.
+
+## What is kept
+
+Nothing of yours. The API key never reaches storage — it rides in with one guess, is used once, and is dropped. A room holds names, model ids, the picture and the guesses, and it lives only for its game: **five minutes after the last round it is deleted from Redis** ([lib/store.ts](lib/store.ts)), and there is no database behind it, no analytics, and no request log.
+
 
 ## Bring your own model
 
