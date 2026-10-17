@@ -52,6 +52,7 @@ export function RoomView({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [stalled, setStalled] = useState(false);
+  const [showFinal, setShowFinal] = useState(false);
   const [laneError, setLaneError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -64,6 +65,7 @@ export function RoomView({ code }: { code: string }) {
   const abortRun = useRef<AbortController | null>(null);
   const lastInk = useRef<string | null>(null);
   const sounded = useRef(0);
+  const dismissedFinal = useRef<string | null>(null);
 
   meRef.current = me;
   seatRef.current = seat;
@@ -299,6 +301,34 @@ export function RoomView({ code }: { code: string }) {
     }
   }, [room]);
 
+  /* ---------------- 终局弹窗 ---------------- */
+
+  const closeFinal = useCallback(() => {
+    setShowFinal(false);
+    dismissedFinal.current = roomRef.current?.code ?? null;
+  }, []);
+
+  useEffect(() => {
+    if (!room) return;
+    if (room.phase === "over") {
+      if (dismissedFinal.current !== room.code) {
+        setShowFinal(true);
+        sound.sparkle(0.05);
+      }
+    } else {
+      setShowFinal(false);
+    }
+  }, [room]);
+
+  useEffect(() => {
+    if (!showFinal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeFinal();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showFinal, closeFinal]);
+
   /* ---------------- 渲染 ---------------- */
 
   if (fatal) {
@@ -329,6 +359,8 @@ export function RoomView({ code }: { code: string }) {
   const ranked = [...room.players].sort((a, b) => b.score - a.score);
   const last = room.history[room.history.length - 1];
   const winnerSeat = last?.solvers[0] ? seatOf(room.players, last.solvers[0].playerId) : null;
+  const champion = ranked[0];
+  const championSeat = champion ? seatOf(room.players, champion.id) : null;
   const total = room.phase === "drawing" ? DRAW_SECONDS : GUESS_SECONDS;
   const canSeeWord = Boolean(room.word) && (isDrawer || revealed);
 
@@ -412,7 +444,7 @@ export function RoomView({ code }: { code: string }) {
           <section className="flex flex-col items-center gap-3">
             <div className="flex w-full flex-wrap items-center justify-between gap-2 px-1">
               <div className="min-w-0">
-                <p className="tx-label text-ink-3">{room.phase === "over" ? "全场结束" : `第 ${room.round} / ${room.totalRounds} 轮`}</p>
+                <p className="tx-label text-ink-3">{room.phase === "over" ? "全场结束" : `第 ${room.roundNow} / ${room.totalRounds} 轮`}</p>
                 {canSeeWord && room.word ? (
                   <Word word={room.word} />
                 ) : (
@@ -472,15 +504,20 @@ export function RoomView({ code }: { code: string }) {
                     {last?.solvers.length ? `${last.solvers.length} 个模型猜中了` : "没有模型猜中 · 画手 -1"}
                   </p>
                   <button className="pill pill-ink h-11 px-5" disabled={busy} onClick={() => void act("next", { round: room.round })}>
-                    {room.round >= room.totalRounds ? "看最终排名" : "下一位 →"}
+                    {room.round >= room.totalDrawings ? "看最终排名" : "下一位 →"}
                   </button>
                 </>
               ) : null}
 
               {room.phase === "over" ? (
-                <button className="pill pill-ink h-11 px-5" onClick={() => router.push("/")}>
-                  再开一局
-                </button>
+                <>
+                  <button className="pill pill-ink h-11 px-5" onClick={() => setShowFinal(true)}>
+                    看最终榜单
+                  </button>
+                  <button className="pill h-11 px-4" onClick={() => router.push("/")}>
+                    再开一局
+                  </button>
+                </>
               ) : null}
             </div>
 
@@ -606,8 +643,61 @@ export function RoomView({ code }: { code: string }) {
       )}
 
       <p className="sr-only" role="status">
-        {PHASE_CN[room.phase] ?? room.phase}，第 {room.round} / {room.totalRounds} 轮
+        {PHASE_CN[room.phase] ?? room.phase}，第 {room.roundNow} / {room.totalRounds} 轮
       </p>
+
+      {showFinal && room.phase === "over" ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center overflow-auto bg-[rgb(22_19_15/0.34)] p-4 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="final-title"
+        >
+          {championSeat ? <Burst key={`final-${room.code}`} seed={11} color={championSeat.color} /> : null}
+          <div className="sticker relative w-full max-w-md p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="tx-label text-ink-3">最终排名</p>
+                <h2 id="final-title" className="tx-display mt-0.5">
+                  {champion ? `${champion.name} 赢了` : "这一局结束了"}
+                </h2>
+              </div>
+              <button className="pill pill-icon shrink-0" onClick={closeFinal} aria-label="关闭">
+                ×
+              </button>
+            </div>
+
+            <ol className="mt-4 flex flex-col gap-1.5">
+              {ranked.map((p, i) => {
+                const s = seatOf(room.players, p.id);
+                return (
+                  <li
+                    key={p.id}
+                    className={`flex items-center gap-2.5 rounded-2xl px-2.5 py-2 ${i === 0 ? "bg-[#fff6d8]" : "bg-[var(--card-2)]"}`}
+                  >
+                    <span className="tx-num tx-small w-3 shrink-0 text-ink-3">{i + 1}</span>
+                    <Creature color={s.color} shape={s.shape} size={30} mood={i === 0 ? "happy" : "idle"} crown={i === 0} />
+                    <div className="min-w-0 flex-1">
+                      <p className="tx-name truncate">{p.name}</p>
+                      <p className="tx-small truncate text-ink-3">{p.model}</p>
+                    </div>
+                    <span className="tx-num shrink-0 text-lg font-bold">{p.score}</span>
+                  </li>
+                );
+              })}
+            </ol>
+
+            <div className="mt-4 flex gap-2">
+              <button className="pill pill-ink h-11 flex-1" onClick={() => router.push("/")}>
+                再开一局
+              </button>
+              <button className="pill h-11 px-4" onClick={closeFinal}>
+                看看这一局
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-[0.8125rem] font-semibold text-white shadow-lg">

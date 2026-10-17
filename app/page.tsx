@@ -15,6 +15,7 @@ export default function Home() {
   const router = useRouter();
   const [me, setMe] = useState<Me>(EMPTY);
   const [code, setCode] = useState("");
+  const [rounds, setRounds] = useState(1);
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +64,7 @@ export default function Home() {
     setBusy("create");
     setError(null);
     try {
-      const payload = { name: me.name.trim(), endpoint: me.endpoint.trim(), model: me.model.trim(), params: paramsFor() };
+      const payload = { name: me.name.trim(), endpoint: me.endpoint.trim(), model: me.model.trim(), params: paramsFor(), rounds };
       const res = await fetch("/api/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -199,6 +200,24 @@ export default function Home() {
         </div>
 
         {error ? <p className="tx-small mt-4 rounded-2xl bg-bad-soft px-3.5 py-2.5 text-bad">{error}</p> : null}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="tx-label text-ink-3">轮次</span>
+          <div className="dock">
+            {[1, 3, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setRounds(n)}
+                aria-pressed={rounds === n}
+                className={`dock-item ${rounds === n ? "bg-ink text-white" : ""}`}
+              >
+                {n} 轮
+              </button>
+            ))}
+          </div>
+          <span className="tx-small text-ink-3">一轮 = 每个人各画一次 · 开房时生效</span>
+        </div>
 
         <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
           <button className="pill pill-ink h-11 px-5 text-[0.9375rem]" onClick={create} disabled={busy !== null}>

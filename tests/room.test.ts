@@ -5,6 +5,7 @@ import {
   MAX_ATTEMPTS,
   advance,
   allDone,
+  currentRound,
   finishDrawing,
   guessesBy,
   nextRound,
@@ -14,6 +15,7 @@ import {
   recordGuess,
   reveal,
   startGame,
+  totalDrawings,
   transitionDue,
   type Room,
 } from "@/lib/room";
@@ -136,6 +138,58 @@ describe("phase clock", () => {
     expect(revealed.phase).toBe("reveal");
     expect(revealed.history).toHaveLength(1);
     expect(revealed.history[0].solvers).toEqual([{ playerId: "p1", attempt: 1, points: 3 }]);
+  });
+});
+
+describe("轮次", () => {
+  it("一轮 = 每个人各画一次，所以 2 人 3 轮要画 6 次", () => {
+    const base = makeRoom();
+    base.rounds = 3;
+    let room = startGame(base, 1000, "猫");
+    expect(totalDrawings(room)).toBe(6);
+    expect(room.round).toBe(1);
+
+    for (let i = 1; i < 6; i++) {
+      room = reveal(room, 2000 + i);
+      room = nextRound(room, 3000 + i, "狗");
+      expect(room.phase).toBe("drawing");
+    }
+    expect(room.round).toBe(6);
+
+    room = reveal(room, 9000);
+    const done = nextRound(room, 9500, "鸟");
+    expect(done.phase).toBe("over");
+    expect(done.history).toHaveLength(6);
+  });
+
+  it("轮转按人数循环：2 个人时第 3 次又回到第一个画手", () => {
+    const base = makeRoom();
+    base.rounds = 2;
+    let room = startGame(base, 1000, "猫");
+    expect(room.drawerId).toBe("p1");
+    room = nextRound(reveal(room, 2000), 3000, "狗");
+    expect(room.drawerId).toBe("p2");
+    room = nextRound(reveal(room, 4000), 5000, "鸟");
+    expect(room.drawerId).toBe("p1");
+  });
+
+  it("当前轮数按人数进位", () => {
+    const base = makeRoom();
+    base.rounds = 3;
+    let room = startGame(base, 1000, "猫");
+    expect(currentRound(room)).toBe(1);
+    room = nextRound(reveal(room, 2000), 3000, "狗");
+    expect(currentRound(room)).toBe(1);
+    room = nextRound(reveal(room, 4000), 5000, "鸟");
+    expect(currentRound(room)).toBe(2);
+    expect(publicRoom(room, "p1").roundNow).toBe(2);
+    expect(publicRoom(room, "p1").totalRounds).toBe(3);
+  });
+
+  it("没选轮数就退回一轮，也就是每人画一次", () => {
+    const room = startGame(makeRoom(), 1000, "猫");
+    expect(totalDrawings(room)).toBe(2);
+    expect(currentRound(room)).toBe(1);
   });
 });
 

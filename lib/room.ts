@@ -60,6 +60,8 @@ export type Room = {
   phase: Phase;
   /** 1-based. The drawer of round N is players[(N - 1) % players.length]. */
   round: number;
+  /** 开房时选的总轮数（1 / 3 / 5）。没选就按人数来：每人画一次。 */
+  rounds?: number;
   drawerId: string;
   word: string | null;
   deadline: number | null;
@@ -70,6 +72,25 @@ export type Room = {
   history: RoundRecord[];
   errors?: RoomError[];
 };
+
+/**
+ * 一"轮" = 每个人都画完一次。开房时选 1 / 3 / 5 轮。
+ * 老房间没有这个字段，退回一轮（也就是每人画一次）。
+ */
+export function totalRounds(room: Room): number {
+  return room.rounds ?? 1;
+}
+
+/** 总共要画多少次 = 轮数 × 人数。 */
+export function totalDrawings(room: Room): number {
+  return totalRounds(room) * Math.max(1, room.players.length);
+}
+
+/** 现在是第几轮（1-based）：画到第几次 ÷ 人数，向上取整。 */
+export function currentRound(room: Room): number {
+  const n = Math.max(1, room.players.length);
+  return Math.min(totalRounds(room), Math.ceil(room.round / n));
+}
 
 /** Points for solving on the first, second or third look. */
 export function pointsFor(attempt: number): number {
@@ -209,7 +230,7 @@ export function reveal(room: Room, now: number): Room {
 
 /** Reveal to the next artist, or to the final board once everyone has drawn. */
 export function nextRound(room: Room, now: number, word = pickWord(room.history.map((h) => h.word)).word): Room {
-  if (room.round >= room.players.length) {
+  if (room.round >= totalDrawings(room)) {
     const done = clone(room);
     done.phase = "over";
     done.deadline = null;
@@ -265,6 +286,9 @@ export type PublicRoom = {
   phase: Phase;
   round: number;
   totalRounds: number;
+  totalDrawings: number;
+  /** 现在是第几轮（一轮 = 每个人各画一次）。 */
+  roundNow: number;
   drawerId: string;
   deadline: number | null;
   image: string | null;
@@ -290,7 +314,9 @@ export function publicRoom(room: Room, viewerId: string): PublicRoom {
     rev: room.rev,
     phase: room.phase,
     round: room.round,
-    totalRounds: room.players.length,
+    totalRounds: totalRounds(room),
+    totalDrawings: totalDrawings(room),
+    roundNow: currentRound(room),
     drawerId: room.drawerId,
     deadline: room.deadline,
     image: room.image,

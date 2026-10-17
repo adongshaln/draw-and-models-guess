@@ -7,7 +7,10 @@ import { STORE_HINT, createRoom, storeMissing } from "@/lib/store";
 
 export const runtime = "nodejs";
 
-type Body = { name?: unknown; endpoint?: unknown; model?: unknown; params?: unknown };
+type Body = { name?: unknown; endpoint?: unknown; model?: unknown; params?: unknown; rounds?: unknown };
+
+/** 开房时能选的轮数。 */
+const ROUND_CHOICES = [1, 3, 5];
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -32,6 +35,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "接口地址不对。" }, { status: 400, headers: noStore });
   }
 
+  const rounds = typeof body?.rounds === "number" && ROUND_CHOICES.includes(body.rounds) ? body.rounds : undefined;
+
   const host = {
     id: newId(),
     token: newToken(),
@@ -50,6 +55,7 @@ export async function POST(req: Request) {
       createdAt: Date.now(),
       phase: "lobby",
       round: 1,
+      rounds,
       drawerId: host.id,
       word: null,
       deadline: null,
