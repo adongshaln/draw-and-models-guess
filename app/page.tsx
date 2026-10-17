@@ -131,7 +131,7 @@ export default function Home() {
         <div className="mt-5 flex flex-col gap-3">
           <label className="block">
             <span className="tx-label text-ink-3">model</span>
-            <select className={`${FIELD} mt-1 appearance-none`} value={preset?.key ?? ""} onChange={(e) => pick(e.target.value)}>
+            <select className={`${FIELD} mt-1`} value={preset?.key ?? ""} onChange={(e) => pick(e.target.value)}>
               <option value="">Custom — I will type the endpoint myself</option>
               {PRESETS.map((p) => (
                 <option key={p.key} value={p.key}>

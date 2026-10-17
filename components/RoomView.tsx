@@ -372,7 +372,7 @@ export function RoomView({ code }: { code: string }) {
       ) : (
         <div className="grid flex-1 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_380px]">
           <section className="flex flex-col items-center gap-3">
-            <div className="flex w-full items-center justify-between gap-3 px-1">
+            <div className="flex w-full flex-wrap items-center justify-between gap-2 px-1">
               <div className="min-w-0">
                 <p className="tx-label text-ink-3">
                   {room.phase === "over" ? "final" : `round ${room.round} of ${room.totalRounds}`}
