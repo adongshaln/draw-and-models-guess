@@ -16,6 +16,15 @@ import { roomColor, seatOf } from "@/lib/seats";
 const POLL_MS = 1200;
 const MAX_ATTEMPTS = 3;
 
+/** 给屏幕阅读器用的阶段名。 */
+const PHASE_CN: Record<string, string> = {
+  lobby: "大厅",
+  drawing: "作画中",
+  guessing: "猜词中",
+  reveal: "揭晓",
+  over: "结束",
+};
+
 function SoundIcon({ on }: { on: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -554,7 +563,7 @@ export function RoomView({ code }: { code: string }) {
       )}
 
       <p className="sr-only" role="status">
-        {room.phase} 第 {room.round} / {room.totalRounds} 轮
+        {PHASE_CN[room.phase] ?? room.phase}，第 {room.round} / {room.totalRounds} 轮
       </p>
 
       {error ? (
