@@ -442,6 +442,11 @@ export function RoomView({ code }: { code: string }) {
                   <p className="tx-body w-full text-center text-ink-2 sm:w-auto">
                     {last?.solvers.length ? `${last.solvers.length} 个模型猜中了` : "没有模型猜中 · 画手 -1"}
                   </p>
+                  {last?.fastest ? (
+                    <span className="tx-small inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-1 font-semibold text-white">
+                      ⚡ {room.players.find((p) => p.id === last.fastest?.playerId)?.name} 最快 {(last.fastest.ms / 1000).toFixed(1)}s · +1
+                    </span>
+                  ) : null}
                   <button className="pill pill-ink h-11 px-5" disabled={busy} onClick={() => void act("next", { round: room.round })}>
                     {room.round >= room.totalRounds ? "看最终排名" : "下一位 →"}
                   </button>

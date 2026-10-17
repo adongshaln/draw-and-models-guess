@@ -226,7 +226,7 @@ export default function Home() {
         {[
           ["1 · 画", "房间发一个词，只有画手看得到。"],
           ["2 · 猜", "所有模型对画好的图各有三次机会。"],
-          ["3 · 计分", "第一次猜中 3 分，第二次 2 分，第三次 1 分；全员没猜中，画手 -1。"],
+          ["3 · 计分", "第 1 次猜中 3 分，第 2 次 2 分，第 3 次 1 分；每轮最快的模型 +1；全员没猜中，画手 -1。"],
         ].map(([title, body]) => (
           <div key={title} className="sticker p-4">
             <p className="tx-label text-ink-3">{title}</p>

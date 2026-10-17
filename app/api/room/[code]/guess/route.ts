@@ -71,7 +71,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   // record, never from anything the browser sent.
   const updated = await withRoomLock(code, (r) => {
     if (!r || r.phase !== "guessing") return null;
-    return recordGuess(r, me.id, text, verdict, Date.now(), newId());
+    return recordGuess(r, me.id, text, verdict, Date.now(), newId(), latencyMs);
   });
 
   const after = updated ? guessesBy(updated, me.id) : [];

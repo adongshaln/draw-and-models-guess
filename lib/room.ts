@@ -38,6 +38,8 @@ export type Guess = {
   text: string;
   verdict: Verdict;
   at: number;
+  /** 服务端自己掐的模型响应时间，用来评"这一轮谁答得最快"。 */
+  ms: number;
 };
 
 export type RoundRecord = {
@@ -45,6 +47,8 @@ export type RoundRecord = {
   drawerId: string;
   word: string;
   solvers: { playerId: string; attempt: number; points: number }[];
+  /** 这一轮答得最快的那个（只在有两个以上模型猜中时评）。 */
+  fastest?: { playerId: string; ms: number };
 };
 
 export type Room = {
@@ -138,7 +142,15 @@ export function finishDrawing(room: Room, now: number, image?: string | null): R
  * One judged look. The attempt number is derived from the server's own record,
  * never from the client, and the points are written here and nowhere else.
  */
-export function recordGuess(room: Room, playerId: string, text: string, verdict: Verdict, now: number, id: string): Room {
+export function recordGuess(
+  room: Room,
+  playerId: string,
+  text: string,
+  verdict: Verdict,
+  now: number,
+  id: string,
+  ms = 0,
+): Room {
   const player = playerById(room, playerId);
   if (!player) return room;
   const mine = guessesBy(room, playerId);
@@ -147,7 +159,7 @@ export function recordGuess(room: Room, playerId: string, text: string, verdict:
 
   const next = clone(room);
   const attempt = mine.length + 1;
-  next.guesses.push({ id, playerId, attempt, text, verdict, at: now });
+  next.guesses.push({ id, playerId, attempt, text, verdict, at: now, ms });
   const me = next.players.find((p) => p.id === playerId)!;
   if (verdict === "correct") {
     me.score += pointsFor(attempt);
@@ -179,7 +191,20 @@ export function reveal(room: Room, now: number): Room {
     if (artist) artist.score -= 1;
   }
 
-  next.history = [...room.history, { round: room.round, drawerId: room.drawerId, word: room.word ?? "", solvers }];
+  // 答得最快的那个 +1。只在有两个以上模型猜中时评——一个不算比赛。
+  // 比的是服务端自己掐的模型响应时间，不是"谁的请求先到"：后者被 1.2 秒的
+  // 轮询相位差吃掉，差 0.8 秒和差 1.1 秒根本分不出来。
+  let fastest: { playerId: string; ms: number } | undefined;
+  if (solvers.length >= 2) {
+    const timed = solvers
+      .map((s) => ({ playerId: s.playerId, ms: solvedBy(room, s.playerId)?.ms ?? 0 }))
+      .sort((a, b) => a.ms - b.ms);
+    fastest = timed[0];
+    const speedster = next.players.find((p) => p.id === fastest?.playerId);
+    if (speedster) speedster.score += 1;
+  }
+
+  next.history = [...room.history, { round: room.round, drawerId: room.drawerId, word: room.word ?? "", solvers, fastest }];
   next.rev++;
   return next;
 }
