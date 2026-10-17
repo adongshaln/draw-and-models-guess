@@ -45,8 +45,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     return fail(e instanceof Error ? e.message : "Bad endpoint.");
   }
 
-  let raw: string;
-  let latencyMs: number;
+  let raw = "";
+  let latencyMs = 0;
   try {
     const out = await askModel({
       endpoint: endpoint.toString(),

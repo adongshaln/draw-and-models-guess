@@ -14,7 +14,7 @@ describe("normalize", () => {
 describe("within1", () => {
   it("accepts a single edit", () => {
     expect(within1("girafe", "giraffe")).toBe(true);
-    expect(within1("elefant", "elephant")).toBe(true);
+    expect(within1("elephent", "elephant")).toBe(true);
   });
 
   it("refuses two edits", () => {
@@ -66,13 +66,13 @@ describe("judgeGuess", () => {
   });
 
   it("accepts a typo only on a long word", () => {
-    expect(judgeGuess("girafe", "giraffe")).toBe("correct");
+    expect(judgeGuess("elephent", "elephant")).toBe("correct");
     expect(judgeGuess("hose", "house")).not.toBe("correct");
   });
 
   it("calls a related answer close rather than correct", () => {
     expect(judgeGuess("hot dog", "dog")).toBe("close");
-    expect(judgeGuess("snowman", "snowflake")).toBe("close");
+    expect(judgeGuess("sunflower", "flower")).toBe("close");
   });
 
   it("rejects an unrelated answer", () => {

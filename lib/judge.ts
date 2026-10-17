@@ -116,9 +116,11 @@ export function judgeGuess(guess: string, secret: string): Verdict {
   }
 
   const plain = g.replace(/ /g, "");
-  for (const form of forms) {
-    const f = canon(form).replace(/ /g, "");
-    if (f.length >= 4 && (plain.includes(f) || f.includes(plain))) return "close";
+  if (plain.length >= 3) {
+    for (const form of forms) {
+      const f = canon(form).replace(/ /g, "");
+      if (f.length >= 3 && (plain.includes(f) || f.includes(plain))) return "close";
+    }
   }
   return "wrong";
 }

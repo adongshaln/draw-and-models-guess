@@ -21,7 +21,13 @@ export default function Home() {
     if (invited) setCode(invited.toUpperCase().slice(0, 8));
   }, []);
 
-  const set = <K extends keyof Me>(key: K, value: Me[K]) => setMe((m) => ({ ...m, [key]: value }));
+  function set(key: keyof Me, value: string) {
+    setMe((current) => {
+      const next = { ...current };
+      next[key] = value;
+      return next;
+    });
+  }
 
   function valid(): string | null {
     if (!me.name.trim()) return "Pick a name.";
