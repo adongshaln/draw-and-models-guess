@@ -102,12 +102,19 @@ describe("recordGuess", () => {
 
 describe("phase clock", () => {
   it("ends the drawing phase when the clock runs out", () => {
-    const started = startGame(makeRoom(), 1000, "cat");
+    const started = { ...startGame(makeRoom(), 1000, "cat"), image: "data:image/png;base64,AAA" };
     const late = started.deadline! + 1;
     expect(transitionDue(started, late)).toBe(true);
     const moved = advance(started, late);
     expect(moved.phase).toBe("guessing");
     expect(moved.deadline).toBe(late + GUESS_SECONDS * 1000);
+  });
+
+  it("skips the guessing phase when nothing was ever drawn", () => {
+    const started = startGame(makeRoom(), 1000, "cat");
+    const moved = advance(started, started.deadline! + 1);
+    expect(moved.phase).toBe("reveal");
+    expect(moved.history[0].solvers).toEqual([]);
   });
 
   it("leaves a live round alone", () => {

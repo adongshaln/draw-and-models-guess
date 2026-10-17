@@ -210,6 +210,9 @@ export function nextRound(room: Room, now: number, word = pickWord(room.history.
  */
 export function advance(room: Room, now: number): Room {
   if (room.phase === "drawing" && room.deadline !== null && now >= room.deadline) {
+    // Nothing was ever uploaded: there is nothing for a model to look at, so
+    // do not park the room in a guessing phase that cannot produce a guess.
+    if (!room.image) return reveal(room, now);
     return finishDrawing(room, now);
   }
   if (room.phase === "guessing") {

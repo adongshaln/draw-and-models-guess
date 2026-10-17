@@ -339,7 +339,17 @@ export function RoomView({ code }: { code: string }) {
                   <Canvas handleRef={handle} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button className="btn btn-primary" disabled={busy} onClick={() => void act("done", { image: handle.current?.snapshot(512) ?? null })}>
+                  <button
+                    className="btn btn-primary"
+                    disabled={busy}
+                    onClick={() => {
+                      if ((handle.current?.ink() ?? 0) < 20) {
+                        setError("Put something on the page first.");
+                        return;
+                      }
+                      void act("done", { image: handle.current?.snapshot(512) ?? null });
+                    }}
+                  >
                     Done — let them guess
                   </button>
                   <button className="btn btn-ghost" onClick={() => handle.current?.undo()}>
