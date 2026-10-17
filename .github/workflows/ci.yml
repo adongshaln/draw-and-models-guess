@@ -45,7 +45,13 @@ jobs:
       - name: Check the stylesheet compiled
         run: |
           set -e
-          css=$(cat .next/static/css/*.css)
+          files=$(find .next -name '*.css' -type f)
+          if [ -z "$files" ]; then
+            echo "no CSS was emitted at all" >&2
+            exit 1
+          fi
+          echo "$files"
+          css=$(cat $files)
           for token in --room .sticker .tx-word .dock; do
             case "$css" in
               *"$token"*) echo "ok $token" ;;
