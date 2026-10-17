@@ -58,7 +58,9 @@ function canon(s: string): string {
 function stripFiller(s: string): string {
   let out = s;
   for (const w of FILLER) {
-    if (CJK.test(w) || w.length === 1) out = out.split(w).join(" ");
+    // 中文没有空格分词，只能按子串整段剥。英文（含单字母的 a）交给下面按词过滤，
+    // 否则 "a" 会把 cat 拆成 c t。
+    if (CJK.test(w)) out = out.split(w).join(" ");
   }
   for (const w of CJK_PARTICLES) out = out.split(w).join(" ");
   const kept = out.split(" ").filter((w) => w && !FILLER.has(w));

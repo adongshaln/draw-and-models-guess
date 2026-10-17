@@ -160,7 +160,7 @@ const DECK: [string, 1 | 2 | 3, string?][] = [
   ["露营", 3, "camping"],
   ["爱", 3, "恋爱,love"],
   ["时间", 3, "time,hourglass"],
-  ["WiFi", 3, "无线网,wifi,wireless"],
+  ["无线网", 3, "WiFi,wifi,无线网络,wireless"],
   ["自拍", 3, "selfie"],
   ["回收", 3, "recycling,recycle"],
   ["地震", 3, "earthquake"],
