@@ -20,6 +20,17 @@ const remote = Boolean(REST_URL && REST_TOKEN);
 const FILE = path.join(process.cwd(), ".data", "rooms.json");
 const LOCK_TTL_SECONDS = 10;
 
+/**
+ * True when this is a serverless deploy with no shared store. The local file
+ * fallback is per-instance, so two functions would each hold half a room and a
+ * player would watch the table empty out on a refresh. Refusing to open a room
+ * is much kinder than that bug.
+ */
+export const storeMissing = Boolean(process.env.VERCEL) && !remote;
+
+export const STORE_HINT =
+  "This deployment has no shared store. Add an Upstash Redis integration (or set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN, or the KV_REST_API_* pair) and redeploy.";
+
 async function cmd(args: (string | number)[]): Promise<unknown> {
   const res = await fetch(`${REST_URL}`, {
     method: "POST",

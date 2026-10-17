@@ -46,6 +46,16 @@ Nothing is required to run it. Without Redis, rooms live in `.data/rooms.json` o
 
 Deploying to Vercel is a plain `next build`; the only thing you should add is the Redis pair.
 
+## Deploying
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/adongshaln/draw-and-models-guess)
+
+One thing has to be added after the import: **a shared store**. On Vercel every request can land on a different instance, so the local `.data/rooms.json` fallback cannot work — two functions would each hold half a room and a player would watch the table empty out on refresh. The app refuses to open a room rather than half-work, and says which variables are missing.
+
+Easiest: in the Vercel project, **Storage → Marketplace → Upstash Redis** (the free tier is plenty). It injects `KV_REST_API_URL` and `KV_REST_API_TOKEN` by itself. Or set the `UPSTASH_REDIS_REST_*` pair by hand. Then redeploy.
+
+That is the entire configuration. There is no site-wide model key, because every player brings their own.
+
 ## How it is built
 
 | Path | What it does |

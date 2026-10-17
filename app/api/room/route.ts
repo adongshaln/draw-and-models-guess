@@ -3,7 +3,7 @@ import { newCode, newId, newToken } from "@/lib/code";
 import { cleanParams } from "@/lib/chat";
 import { assertEndpointShape } from "@/lib/endpoint";
 import type { Room } from "@/lib/room";
-import { createRoom } from "@/lib/store";
+import { STORE_HINT, createRoom, storeMissing } from "@/lib/store";
 
 export const runtime = "nodejs";
 
@@ -13,6 +13,10 @@ const noStore = { "Cache-Control": "no-store" };
 
 /** Open a room. The creator is the host and the first artist. */
 export async function POST(req: Request) {
+  if (storeMissing) {
+    return NextResponse.json({ error: STORE_HINT }, { status: 503, headers: noStore });
+  }
+
   const body = (await req.json().catch(() => null)) as Body | null;
 
   const name = typeof body?.name === "string" ? body.name.trim().slice(0, 20) : "";
