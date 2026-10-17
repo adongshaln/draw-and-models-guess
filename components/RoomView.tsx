@@ -51,6 +51,7 @@ export function RoomView({ code }: { code: string }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [thinking, setThinking] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const [laneError, setLaneError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -58,8 +59,9 @@ export function RoomView({ code }: { code: string }) {
   const roomRef = useRef<PublicRoom | null>(null);
   const meRef = useRef<Me | null>(null);
   const seatRef = useRef<Seat | null>(null);
-  const driving = useRef(-1);
-  const running = useRef(false);
+  const runningRound = useRef<number | null>(null);
+  const doneRound = useRef(-1);
+  const abortRun = useRef<AbortController | null>(null);
   const lastInk = useRef<string | null>(null);
   const sounded = useRef(0);
 
@@ -180,15 +182,26 @@ export function RoomView({ code }: { code: string }) {
 
   const runModel = useCallback(
     async (round: number) => {
-      if (running.current) return;
       const config = meRef.current;
       const current = seatRef.current;
       if (!config || !current) return;
-      running.current = true;
+      // 同一轮已经在跑，或者这一轮已经跑完了，都不再重复。
+      if (runningRound.current === round || doneRound.current === round) return;
+
+      // 新一轮开始就掐掉上一轮还没回来的请求。它挡不住这一轮——
+      // 之前就是这里把整轮卡死的：上一轮请求挂着，running 一直是 true，
+      // 新一轮直接 return，而"已跑过"的标记又让它永不重试。
+      abortRun.current?.abort();
+      const ctrl = new AbortController();
+      abortRun.current = ctrl;
+      runningRound.current = round;
       setThinking(true);
+      setStalled(false);
       setLaneError(null);
+
       try {
-        for (;;) {
+        for (let n = 0; n < MAX_ATTEMPTS; n++) {
+          if (ctrl.signal.aborted) break;
           const latest = roomRef.current;
           if (!latest || latest.phase !== "guessing" || latest.round !== round) break;
           const mine = latest.guesses.filter((g) => g.playerId === latest.you);
@@ -198,6 +211,7 @@ export function RoomView({ code }: { code: string }) {
           const res = await fetch(`/api/room/${code}/guess`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: ctrl.signal,
             body: JSON.stringify({ token: current.token, apiKey: config.apiKey }),
           });
           const data = (await res.json()) as { error?: string; verdict?: string };
@@ -213,10 +227,18 @@ export function RoomView({ code }: { code: string }) {
           await new Promise((resolve) => setTimeout(resolve, 700));
         }
       } catch {
-        setLaneError("模型调用失败。");
+        if (!ctrl.signal.aborted) setLaneError("模型调用失败。");
       } finally {
-        running.current = false;
-        setThinking(false);
+        if (runningRound.current === round) {
+          runningRound.current = null;
+          doneRound.current = round;
+          setThinking(false);
+          // 还没用完三次、也没猜中，就停下来问一句：让玩家手动再试。
+          const after = roomRef.current;
+          const mine = after ? after.guesses.filter((g) => g.playerId === after.you) : [];
+          const solved = mine.some((g) => g.verdict === "correct");
+          setStalled(!ctrl.signal.aborted && after?.phase === "guessing" && !solved && mine.length < MAX_ATTEMPTS);
+        }
       }
     },
     [code, poll],
@@ -225,10 +247,17 @@ export function RoomView({ code }: { code: string }) {
   useEffect(() => {
     if (!room || !me || !seat) return;
     if (room.phase !== "guessing") return;
-    if (driving.current === room.round) return;
-    driving.current = room.round;
     void runModel(room.round);
   }, [room, me, seat, runModel]);
+
+  // 后台标签页会被浏览器降频到一分钟一次轮询，回来时立刻补一次。
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [poll]);
 
   /* ---------------- 作画时的实时预览 ---------------- */
 
@@ -442,11 +471,6 @@ export function RoomView({ code }: { code: string }) {
                   <p className="tx-body w-full text-center text-ink-2 sm:w-auto">
                     {last?.solvers.length ? `${last.solvers.length} 个模型猜中了` : "没有模型猜中 · 画手 -1"}
                   </p>
-                  {last?.fastest ? (
-                    <span className="tx-small inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-1 font-semibold text-white">
-                      ⚡ {room.players.find((p) => p.id === last.fastest?.playerId)?.name} 最快 {(last.fastest.ms / 1000).toFixed(1)}s · +1
-                    </span>
-                  ) : null}
                   <button className="pill pill-ink h-11 px-5" disabled={busy} onClick={() => void act("next", { round: room.round })}>
                     {room.round >= room.totalRounds ? "看最终排名" : "下一位 →"}
                   </button>
@@ -516,12 +540,24 @@ export function RoomView({ code }: { code: string }) {
                                     : "marker-strike bg-[var(--card-2)] text-ink-2"
                               }`}
                               style={g.verdict === "wrong" ? ({ "--c": s.color } as React.CSSProperties) : undefined}
+                              title={g.ms ? `${(g.ms / 1000).toFixed(1)}s` : undefined}
                             >
                               {g.text}
                             </span>
                           ))
                         )}
                       </div>
+                      {p.id === room.you && stalled ? (
+                        <button
+                          className="tx-small mt-1.5 rounded-lg bg-ink px-2 py-0.5 font-semibold text-white"
+                          onClick={() => {
+                            doneRound.current = -1;
+                            void runModel(room.round);
+                          }}
+                        >
+                          让模型再看一次
+                        </button>
+                      ) : null}
                     </div>
                   </li>
                 );

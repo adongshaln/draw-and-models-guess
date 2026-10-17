@@ -10,8 +10,8 @@ export const MAX_PLAYERS = 8;
 export const MAX_ATTEMPTS = 3;
 /** A drawing phase nobody finishes ends on its own. */
 export const DRAW_SECONDS = 150;
-/** Three model calls, each allowed to take 25s. */
-export const GUESS_SECONDS = 90;
+/** 三次模型调用，每次最长 25 秒；窗口给够，别让慢模型输在等不起上。 */
+export const GUESS_SECONDS = 120;
 /** A room is disposable. */
 export const ROOM_TTL_SECONDS = 6 * 60 * 60;
 
@@ -47,8 +47,6 @@ export type RoundRecord = {
   drawerId: string;
   word: string;
   solvers: { playerId: string; attempt: number; points: number }[];
-  /** 这一轮答得最快的那个（只在有两个以上模型猜中时评）。 */
-  fastest?: { playerId: string; ms: number };
 };
 
 export type Room = {
@@ -191,20 +189,7 @@ export function reveal(room: Room, now: number): Room {
     if (artist) artist.score -= 1;
   }
 
-  // 答得最快的那个 +1。只在有两个以上模型猜中时评——一个不算比赛。
-  // 比的是服务端自己掐的模型响应时间，不是"谁的请求先到"：后者被 1.2 秒的
-  // 轮询相位差吃掉，差 0.8 秒和差 1.1 秒根本分不出来。
-  let fastest: { playerId: string; ms: number } | undefined;
-  if (solvers.length >= 2) {
-    const timed = solvers
-      .map((s) => ({ playerId: s.playerId, ms: solvedBy(room, s.playerId)?.ms ?? 0 }))
-      .sort((a, b) => a.ms - b.ms);
-    fastest = timed[0];
-    const speedster = next.players.find((p) => p.id === fastest?.playerId);
-    if (speedster) speedster.score += 1;
-  }
-
-  next.history = [...room.history, { round: room.round, drawerId: room.drawerId, word: room.word ?? "", solvers, fastest }];
+  next.history = [...room.history, { round: room.round, drawerId: room.drawerId, word: room.word ?? "", solvers }];
   next.rev++;
   return next;
 }

@@ -169,28 +169,6 @@ describe("reveal", () => {
     expect(done.players.find((p) => p.id === "p2")?.score).toBe(0);
     expect(done.players.find((p) => p.id === "p1")?.score).toBe(-1);
   });
-
-  it("两个以上猜中时，答得最快的那个 +1", () => {
-    const three = makeRoom();
-    three.players.push({ id: "p3", token: "t3", name: "Cid", endpoint: "https://c.example/v1", model: "m-three", score: 0, joinedAt: 2 });
-    let room = startGame(three, 1000, "猫");
-    room = recordGuess(room, "p2", "猫", "correct", 2000, "g1", 900);
-    room = recordGuess(room, "p3", "猫", "correct", 2600, "g2", 400);
-    const done = reveal(room, 3000);
-    expect(done.players.find((p) => p.id === "p2")?.score).toBe(3);
-    expect(done.players.find((p) => p.id === "p3")?.score).toBe(4);
-    // 画手：两个模型猜中，各 +1
-    expect(done.players.find((p) => p.id === "p1")?.score).toBe(2);
-    expect(done.history[0].fastest).toEqual({ playerId: "p3", ms: 400 });
-  });
-
-  it("只有一个模型猜中就不评最快", () => {
-    let room = startGame(makeRoom(), 1000, "猫");
-    room = recordGuess(room, "p2", "猫", "correct", 2000, "g1", 700);
-    const done = reveal(room, 3000);
-    expect(done.history[0].fastest).toBeUndefined();
-    expect(done.players.find((p) => p.id === "p2")?.score).toBe(3);
-  });
 });
 
 describe("nextRound", () => {

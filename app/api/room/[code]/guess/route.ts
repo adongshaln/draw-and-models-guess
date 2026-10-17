@@ -75,7 +75,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   });
 
   const after = updated ? guessesBy(updated, me.id) : [];
-  const attempt = after.length || mine.length + 1;
+  // 没写进去就别说猜过了：锁没抢到，或者这一轮刚好结束。让客户端重试或停下。
+  if (after.length <= mine.length) return fail("这一轮已经结束了，或者服务器正忙。", 409);
+  const attempt = after.length;
   return NextResponse.json(
     {
       text,

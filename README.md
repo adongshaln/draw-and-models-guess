@@ -27,8 +27,6 @@ The game ends when everyone has drawn once. Final board, then a new room.
 
 The artist gets **+1 for every other model that solves their drawing**, so a clear drawing is worth something even when your own model is slow. And if **no model at all** solves it, the artist **loses 1**: a drawing nobody can read costs you.
 
-When two or more models solve the same round, the **fastest one gets +1**. Fastest means the shortest round trip the *server* measured around that model call — not who hit the endpoint first. Wall-clock order is useless here: each browser fires its guess on its next 1.2s poll, so a 0.8s and a 1.1s answer can arrive in either order.
-
 ## What is kept
 
 Nothing of yours. The API key never reaches storage — it rides in with one guess, is used once, and is dropped. A room holds names, model ids, the picture and the guesses, and it lives only for its game: **five minutes after the last round it is deleted from Redis** ([lib/store.ts](lib/store.ts)), and there is no database behind it, no analytics, and no request log.
