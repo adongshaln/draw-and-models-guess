@@ -305,12 +305,12 @@ export function RoomView({ code }: { code: string }) {
 
   const headline =
     room.phase === "drawing"
-      ? `${drawer?.name ?? "有人"}正在画`
+      ? `${drawer?.name ?? "someone"} is drawing`
       : room.phase === "guessing"
-        ? "模型正在看"
+        ? "the models are looking"
         : room.phase === "reveal"
-          ? "本轮结束"
-          : "最终排名";
+          ? "round over"
+          : "final board";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[1180px] flex-col gap-3 px-3 py-3 sm:px-5 sm:py-4">

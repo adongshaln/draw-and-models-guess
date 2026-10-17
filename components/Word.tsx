@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 export function Word({ word }: { word: string }) {
   return (
     <AnimatePresence mode="popLayout" initial={false}>
-      <motion.h1 key={word} className="tx-word flex whitespace-pre" aria-label={word} exit={{ opacity: 0, y: -18, transition: { duration: 0.15 } }}>
+      <motion.h1 key={word} className="tx-word tx-cn flex whitespace-pre" aria-label={word} exit={{ opacity: 0, y: -18, transition: { duration: 0.15 } }}>
         {word.split("").map((ch, i) => (
           <motion.span
             key={i}

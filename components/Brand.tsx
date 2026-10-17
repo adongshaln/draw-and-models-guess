@@ -17,10 +17,10 @@ export function BrandGlyph({ className = "size-8" }: { className?: string }) {
 
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" aria-label="你画，模型猜" className={`group flex shrink-0 items-center gap-1.5 rounded-xl text-ink ${className}`}>
+    <Link href="/" aria-label="Sketch Test" className={`group flex shrink-0 items-center gap-1.5 rounded-xl text-ink ${className}`}>
       <BrandGlyph className="size-8 transition-transform duration-500 ease-[var(--ease-spring)] group-hover:-rotate-12" />
-      <span className="text-[1.25rem] leading-none font-extrabold tracking-[-0.02em] [font-variation-settings:'opsz'_48,'wdth'_85]">
-        你画，模型猜
+      <span className="text-[1.25rem] leading-none font-extrabold tracking-[-0.04em] [font-variation-settings:'opsz'_48,'wdth'_85]">
+        sketch test
       </span>
     </Link>
   );

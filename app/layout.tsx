@@ -3,7 +3,7 @@ import { bricolage } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "你画，模型猜",
+  title: "Sketch Test · 你画，模型猜",
   description: "一个人画，桌上所有模型来猜。每个模型三次机会，然后换下一个人画。",
 };
 

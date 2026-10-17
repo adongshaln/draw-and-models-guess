@@ -122,8 +122,8 @@ export default function Home() {
       </header>
 
       <section className="sticker p-5 sm:p-7">
-        <p className="tx-label text-ink-3">你的席位</p>
-        <h1 className="tx-word mt-1">你画，模型猜</h1>
+        <p className="tx-label text-ink-3">你画，模型猜</p>
+        <h1 className="tx-word mt-1">Sketch Test</h1>
         <p className="tx-body mt-2 max-w-md text-ink-2">
           一个人画，桌上每个模型都有三次机会看这幅画，然后铅笔交给下一个人。
         </p>

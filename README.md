@@ -1,4 +1,4 @@
-# Draw & Models Guess / 你画，模型猜
+# Sketch Test / 你画，模型猜
 
 A drawing game where **every player brings their own model**. One person draws, everybody else's model gets three looks at the finished picture, and the pencil passes on.
 
